@@ -1,0 +1,7 @@
+#!/bin/sh
+
+git clone https://github.com/Dushistov/sdcv /tmp/sdcv || cd /tmp/sdcv || exit -1
+cmake . || exit -1 
+make lang && make -j12 && sudo make install
+
+echo "the dicts file should be placed under /usr/share/stardict/dic"
