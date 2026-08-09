@@ -1,0 +1,4 @@
+# AUR-only packages. bootstrap.sh does not install these (yay refuses to
+# run as root); it prints the yay command to run as your user.
+nsxiv
+google-cloud-cli

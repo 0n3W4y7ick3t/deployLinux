@@ -1,0 +1,13 @@
+# X13 Gen4 AMD machine-specific head.
+# scripts/10-portage.sh assembles /etc/portage/make.conf as
+# portage/make.conf.shared + this file (shared first so the FEATURES
+# append below works). Shared COMMON_FLAGS uses -march=znver4 to match
+# the PC binhost builder.
+
+VIDEO_CARDS="amdgpu radeonsi"
+ALSA_CARDS="hda-intel"
+
+MAKEOPTS="-j9 -l8"
+
+# getbinpkg: prefer binary packages from the PC binhost (binrepos.conf)
+FEATURES="${FEATURES} getbinpkg"

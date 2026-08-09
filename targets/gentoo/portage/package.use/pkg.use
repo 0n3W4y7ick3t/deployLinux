@@ -1,0 +1,23 @@
+## PERSONAL
+app-i18n/mozc ibus
+app-misc/fastfetch imagemagick chafa pulseaudio
+media-gfx/feh xinerama
+media-gfx/imagemagick jpeg webp
+media-sound/bluez-alsa aac aptx ldac upower
+media-sound/mpd pipewire flac opus zip
+media-sound/ncmpcpp visualizer taglib clock
+media-video/ffmpeg v4l x264 mp3 opus flac
+media-video/pipewire sound-server pipewire-alsa extra ffmpeg dbus bluetooth gstreamer modemmanager
+sys-apps/dbus X
+sys-devel/gcc nls
+sys-kernel/installkernel -dracut
+sys-kernel/linux-firmware compress-zstd savedconfig
+
+## PERSONAL
+# required by media-video/amdgpu-pro-amf-1.4.34.1787253::gentoo[radv]
+# required by @selected
+# required by @world (argument)
+>=media-libs/mesa-24.2.3 vulkan
+# required by app-i18n/fcitx-configtool-5.1.6-r2::gentoo
+# required by fcitx-configtool (argument)
+>=app-i18n/fcitx-qt-5.1.5-r2 qt6

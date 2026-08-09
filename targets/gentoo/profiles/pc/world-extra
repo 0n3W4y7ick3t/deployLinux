@@ -1,0 +1,26 @@
+# PC-only atoms, merged on top of the base world by scripts/20-world.sh.
+
+# kernel: dist-kernel policy for first boot (see kernel/README.md)
+sys-kernel/gentoo-kernel
+
+# gpu
+x11-drivers/nvidia-drivers
+media-libs/nvidia-vaapi-driver
+
+# containers extras / k8s
+app-containers/nvidia-container-toolkit
+sys-cluster/minikube
+sys-cluster/kubectl
+sys-cluster/k9scli
+
+# virtualization
+app-emulation/qemu
+app-emulation/libvirt
+app-emulation/virt-manager
+
+# net analysis
+net-analyzer/nmap
+net-analyzer/wireshark
+
+# binhost server
+www-servers/nginx

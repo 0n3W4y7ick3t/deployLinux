@@ -1,0 +1,2 @@
+# throttle LLVM link stage, it is the RAM hog of @world
+sys-devel/llvm llvm

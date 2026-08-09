@@ -1,0 +1,16 @@
+# PC (9800X3D / RTX 5080) machine-specific head.
+# Appended AFTER make.conf.shared by scripts/10-portage.sh.
+
+VIDEO_CARDS="nvidia"
+
+MAKEOPTS="-j16 -l16"
+
+# binhost server: keep binary packages of everything built here
+FEATURES="${FEATURES} buildpkg"
+BINPKG_FORMAT="gpkg"
+PKGDIR="/var/cache/binpkgs"
+
+QEMU_SOFTMMU_TARGETS="x86_64 aarch64"
+QEMU_USER_TARGETS="x86_64"
+
+# GRUB_PLATFORMS intentionally unset: rEFInd boots this box

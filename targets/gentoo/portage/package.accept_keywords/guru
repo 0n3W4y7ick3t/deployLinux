@@ -1,0 +1,10 @@
+# specific GURU atoms only, not the whole overlay
+app-misc/cliphist
+app-misc/keyd
+app-misc/brightnessctl
+gui-apps/wtype
+gui-apps/wlr-randr
+# moved out of ::gentoo, now GURU-only
+app-misc/lf
+app-misc/tealdeer
+media-gfx/nsxiv

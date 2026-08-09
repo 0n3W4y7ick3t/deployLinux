@@ -1,0 +1,3 @@
+# QEMU_SOFTMMU_TARGETS / QEMU_USER_TARGETS are set in make.conf.head
+app-emulation/qemu spice usbredir virtfs virgl opengl vnc io-uring
+app-emulation/libvirt qemu virt-network macvtap

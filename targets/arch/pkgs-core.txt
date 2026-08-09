@@ -1,0 +1,31 @@
+# core CLI + system set (official repos)
+# kernel note: stock linux + linux-firmware from the base install already
+# cover everything the gentoo kernel checklist enables
+#linux-lts   # fallback kernel, uncomment to install
+base-devel
+git
+zsh
+neovim
+tmux
+lf
+fzf
+ripgrep
+fd
+bat
+htop
+fastfetch
+openssh
+man-db
+curl
+wget
+rsync
+tree
+unzip
+zip
+jq
+yadm
+pciutils
+usbutils
+networkmanager
+bluez
+bluez-utils

@@ -1,0 +1,102 @@
+# Base @world list shared by all Gentoo machines, merged by
+# scripts/20-world.sh with --noreplace together with the profile's
+# world-extra. NOT here: gcloud (official Google tarball, see runbook)
+# and the Hyprland desktop stack (portage/sets/hyprland, @hyprland).
+
+# kernel / firmware (dist-kernel choice lives in the profile extras)
+sys-kernel/gentoo-sources
+sys-kernel/linux-firmware
+
+# base system tools
+app-admin/sudo
+app-admin/yadm
+app-portage/gentoolkit
+app-portage/cpuid2cpuflags
+sys-apps/man-db
+sys-apps/pciutils
+sys-apps/usbutils
+sys-process/htop
+net-misc/curl
+net-misc/dhcpcd
+
+# filesystems
+sys-fs/btrfs-progs
+sys-fs/dosfstools
+sys-fs/exfatprogs
+sys-fs/fuse
+sys-fs/ntfs3g
+sys-fs/xfsprogs
+
+# shell / editors / cli
+app-shells/zsh
+app-shells/gentoo-zsh-completions
+app-shells/fzf
+app-editors/neovim
+app-misc/fastfetch
+app-misc/lf
+app-misc/tmux
+app-text/sdcv
+app-misc/tealdeer
+app-text/tree
+sys-apps/bat
+sys-apps/fd
+sys-apps/ripgrep
+www-client/lynx
+
+# archives
+app-arch/7zip
+app-arch/lz4
+app-arch/unrar
+app-arch/unzip
+app-arch/zip
+
+# dev
+dev-vcs/git
+dev-util/github-cli
+dev-lang/go
+dev-go/gopls
+dev-go/go-tools
+dev-lang/python
+dev-python/pip
+dev-python/pynvim
+dev-lang/rust-bin
+dev-debug/gdb
+dev-debug/valgrind
+llvm-core/clang
+
+# net / vpn
+net-vpn/tailscale
+net-vpn/cloudflare-warp
+net-wireless/bluez
+net-wireless/bluez-tools
+
+# graphics base
+media-libs/mesa
+
+# desktop apps (wayland-side tools live in the @hyprland set)
+www-client/google-chrome
+app-text/zathura
+app-text/zathura-pdf-mupdf
+gnome-base/gnome-keyring
+x11-misc/xdg-utils
+media-fonts/wqy-microhei
+media-gfx/nsxiv
+
+# media
+media-video/mpv
+media-video/ffmpeg
+media-video/ffmpegthumbnailer
+media-video/pipewire
+media-sound/mpd
+media-sound/mpc
+media-sound/ncmpcpp
+media-sound/playerctl
+media-sound/pulsemixer
+media-sound/alsa-utils
+media-gfx/imagemagick
+media-gfx/graphviz
+
+# containers (both machines run docker)
+app-containers/docker
+app-containers/docker-cli
+app-containers/docker-compose

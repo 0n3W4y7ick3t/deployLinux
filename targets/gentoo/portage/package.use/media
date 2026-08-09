@@ -1,0 +1,3 @@
+media-video/ffmpeg nvenc vaapi vdpau
+media-video/mpv lua
+media-video/pipewire bluetooth sound-server pipewire-alsa

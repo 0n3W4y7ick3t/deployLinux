@@ -1,0 +1,19 @@
+# X13-only atoms, merged on top of the base world by scripts/20-world.sh.
+# Target state after the Hyprland migration — X11-era leaves are handled
+# by hypr-migrate.sh on the live machine, not listed here.
+
+# wifi
+net-wireless/iwd
+
+# laptop apps
+app-editors/vscode
+www-client/firefox-bin
+media-video/amdgpu-pro-amf
+
+# input methods beyond the shared fcitx set
+app-i18n/fcitx-rime
+app-i18n/fcitx-anthy
+
+# audio extras
+media-sound/alsa-tools
+sys-firmware/alsa-firmware

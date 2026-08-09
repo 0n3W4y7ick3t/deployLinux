@@ -1,0 +1,4 @@
+# laptop-only extras (installed when a laptop chassis is detected)
+tlp
+iwd
+brightnessctl

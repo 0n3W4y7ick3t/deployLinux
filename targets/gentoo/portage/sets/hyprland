@@ -1,0 +1,36 @@
+# Hyprland desktop stack, shared by every Gentoo profile.
+# Needs the hyproverlay and guru overlays enabled (10-portage.sh does it).
+
+# hyproverlay
+gui-wm/hyprland
+gui-apps/hypridle
+gui-apps/hyprlock
+gui-apps/hyprpaper
+gui-libs/xdg-desktop-portal-hyprland
+
+# ::gentoo
+x11-terms/kitty
+gui-apps/wmenu
+gui-apps/waybar
+gui-apps/grim
+gui-apps/slurp
+gui-apps/swappy
+gui-apps/wf-recorder
+gui-apps/wl-clipboard
+x11-misc/dunst
+x11-misc/gammastep
+sys-apps/xdg-desktop-portal
+x11-base/xwayland
+app-misc/jq
+media-fonts/noto-emoji
+app-i18n/fcitx:5
+app-i18n/fcitx-gtk
+app-i18n/fcitx-qt
+app-i18n/fcitx-configtool
+app-i18n/fcitx-chinese-addons
+
+# guru
+app-misc/cliphist
+app-misc/keyd
+gui-apps/wtype
+app-misc/brightnessctl

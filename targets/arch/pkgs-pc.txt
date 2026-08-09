@@ -1,0 +1,16 @@
+# PC-class extras: containers, k8s, virtualization, network analysis
+docker
+docker-compose
+nvidia-container-toolkit
+minikube
+kubectl
+k9s
+helm
+qemu-full
+libvirt
+virt-manager
+dnsmasq
+nmap
+wireshark-qt
+tailscale
+7zip

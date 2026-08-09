@@ -1,0 +1,18 @@
+#!/bin/sh
+# Build and install sdcv (console StarDict client) from source.
+set -eu
+
+repo=/tmp/sdcv
+
+if [ -d "$repo/.git" ]; then
+    git -C "$repo" pull --ff-only
+else
+    git clone https://github.com/Dushistov/sdcv "$repo"
+fi
+
+cd "$repo"
+cmake .
+make -j"$(nproc)"
+sudo make install
+
+echo "place dictionary files under /usr/share/stardict/dic"
