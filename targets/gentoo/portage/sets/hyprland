@@ -28,6 +28,8 @@ app-i18n/fcitx-gtk
 app-i18n/fcitx-qt
 app-i18n/fcitx-configtool
 app-i18n/fcitx-chinese-addons
+# japanese: mozc is the engine, fcitx5 support via its USE flag
+app-i18n/mozc
 
 # guru
 app-misc/cliphist

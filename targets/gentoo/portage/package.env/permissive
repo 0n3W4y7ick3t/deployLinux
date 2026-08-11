@@ -1,0 +1,5 @@
+# glib >=2.88 made g_utf8_next_char const-correct; sdcv 0.5.5 still assigns
+# it to a gchar*, which C++ rejects. Only 0.5.5 is in the tree and there is
+# no fix patch. The conversion is harmless — the macro just advances a
+# pointer — so downgrade it to a warning.
+app-text/sdcv permissive

@@ -1,8 +1,0 @@
-# Reference only — this is what a CLIENT of this binhost puts in
-# /etc/portage/binrepos.conf (scripts/60-binhost.sh writes it for
-# profiles with BINHOST_ROLE=client).
-# Replace the host with the PC's Tailscale MagicDNS name or LAN address.
-
-[pc-binhost]
-priority = 10
-sync-uri = http://pc.tail-example.ts.net/binhost

@@ -61,7 +61,7 @@ else
 fi
 
 export GENTOO_PROFILE="$profile"
-for s in 10-portage 20-world 30-gpu 40-services 50-virt 60-binhost 70-ollama; do
+for s in 10-portage 15-kernel 20-world 30-gpu 40-services 50-virt 70-ollama; do
     log "=== running $s.sh (profile $profile) ==="
     sh "$script_dir/scripts/$s.sh"
 done

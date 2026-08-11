@@ -28,6 +28,8 @@ rc_add() {
 }
 
 rc_add elogind boot
+# default, not boot: upstream only wants boot when zram backs $TMPDIR
+rc_add zram-init default
 rc_add dbus default
 # dhcpcd everywhere, ethernet is the default path
 rc_add dhcpcd default
@@ -48,6 +50,22 @@ rc_add keyd default
 rc-service keyd status >/dev/null 2>&1 || rc-service keyd start 2>/dev/null || log "keyd not started (chroot?), starts on boot"
 log "installed /etc/keyd/default.conf"
 
+# fcitx5 needs XMODIFIERS, but rice's shell/profile already exports it and
+# Hyprland inherits that (it is exec'd from the login shell on tty1), so
+# setting it here too would just be a second place to keep in sync.
+
+# zram swap at ~1/3 of RAM; no machine in the fleet has a swap partition
+zram_mb=$(awk '/^MemTotal:/ { printf "%d", $2 / 1024 / 3 }' /proc/meminfo)
+cat > /etc/conf.d/zram-init <<EOF
+num_devices=1
+type0=swap
+size0=$zram_mb
+algo0=zstd
+labl0=zram_swap
+flag0=
+EOF
+log "wrote /etc/conf.d/zram-init (${zram_mb}M zstd swap)"
+
 cat > /etc/sysctl.d/90-bbr.conf <<'EOF'
 net.core.default_qdisc = fq
 net.ipv4.tcp_congestion_control = bbr
@@ -66,7 +84,11 @@ EOF
     log "wrote /etc/local.d/epp.start"
 fi
 
-# weekly TRIM (needs a cron daemon; alternatively run fstrim from local.d)
+# weekly TRIM. cronie provides the daemon and /etc/cron.weekly — neither
+# exists in a stage3, so this used to write into a directory that was not
+# there and the job never ran even once created.
+rc_add cronie default
+mkdir -p /etc/cron.weekly
 cat > /etc/cron.weekly/fstrim <<'EOF'
 #!/bin/sh
 fstrim -a

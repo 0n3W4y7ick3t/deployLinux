@@ -19,7 +19,7 @@ Three guides take a blank disk to the full environment:
 
 | target | machine | entry point |
 | :--- | :--- | :--- |
-| [gentoo](targets/gentoo/) | the Gentoo fleet — profiles: `pc` (9800X3D / RTX 5080 desktop, binhost server) and `x13` (ThinkPad X13 Gen4 AMD, binhost client) | [guide](docs/bootstrap-gentoo.md), `runbook.md`, `provision.sh --profile <name> --hostname localhost` |
+| [gentoo](targets/gentoo/) | **neverland** — 9800X3D / RTX 5080 desktop, profile `pc`. The only Gentoo box; the X13 runs Arch | [guide](docs/bootstrap-gentoo.md), `runbook.md`, `provision.sh --profile <name> --hostname <name>` |
 | [arch](targets/arch/) | generic Arch for either machine (alternative OS, hardware auto-detected) | [guide](docs/bootstrap-arch.md), `bootstrap.sh` |
 | [server](targets/server/) | generic homelab servers, terminal only | `bootstrap.sh` |
 | [wsl2-arch](targets/wsl2-arch/) | Arch inside WSL2, shell only | `bootstrap.sh` |
@@ -34,8 +34,9 @@ keyd swaps Caps Lock and Escape on every machine.
 This repo is the **system layer** (root-owned files, packages, services).
 The **user layer** — dotfiles, desktop configs — lives in
 [rice](https://github.com/0n3W4y7ick3t/rice) and is deployed with yadm.
-Machines are told apart by yadm classes, never by hostname: hostnames may
-all be `localhost`.
+Machines are told apart by yadm classes, never by hostname — the class is
+set explicitly, so hostnames are free to be whatever you like. The pc is
+`neverland`.
 
 ## Vendored assets
 

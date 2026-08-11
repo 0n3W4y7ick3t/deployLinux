@@ -3,12 +3,17 @@
 # world-extra. NOT here: gcloud (official Google tarball, see runbook)
 # and the Hyprland desktop stack (portage/sets/hyprland, @hyprland).
 
-# kernel / firmware (dist-kernel choice lives in the profile extras)
+# kernel / firmware. installkernel must be explicit since 2024-02-26: it is
+# no longer pulled in implicitly, and without it `make install` drops an
+# unversioned bzImage in /boot and skips the postinst.d hooks.
 sys-kernel/gentoo-sources
+sys-kernel/installkernel
 sys-kernel/linux-firmware
 
 # base system tools
 app-admin/sudo
+# 40-services.sh installs a /etc/cron.weekly job
+sys-process/cronie
 app-admin/yadm
 app-portage/gentoolkit
 app-portage/cpuid2cpuflags
@@ -26,6 +31,8 @@ sys-fs/exfatprogs
 sys-fs/fuse
 sys-fs/ntfs3g
 sys-fs/xfsprogs
+# compressed RAM swap; no swap partition on any machine in the fleet
+sys-block/zram-init
 
 # shell / editors / cli
 app-shells/zsh
@@ -66,7 +73,6 @@ llvm-core/clang
 
 # net / vpn
 net-vpn/tailscale
-net-vpn/cloudflare-warp
 net-wireless/bluez
 net-wireless/bluez-tools
 
@@ -80,6 +86,9 @@ app-text/zathura-pdf-mupdf
 gnome-base/gnome-keyring
 x11-misc/xdg-utils
 media-fonts/wqy-microhei
+# CJK coverage: wqy-microhei is Chinese only, Japanese renders as tofu
+# without this
+media-fonts/noto-cjk
 media-gfx/nsxiv
 
 # media

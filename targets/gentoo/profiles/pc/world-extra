@@ -1,7 +1,8 @@
 # PC-only atoms, merged on top of the base world by scripts/20-world.sh.
 
-# kernel: dist-kernel policy for first boot (see kernel/README.md)
-sys-kernel/gentoo-kernel
+# kernel: custom build from sys-kernel/gentoo-sources (in the base world
+# file) — no dist-kernel here, it ships ext4/xfs as modules and would need
+# an initramfs. See kernel/README.md.
 
 # gpu
 x11-drivers/nvidia-drivers
@@ -22,5 +23,3 @@ app-emulation/virt-manager
 net-analyzer/nmap
 net-analyzer/wireshark
 
-# binhost server
-www-servers/nginx

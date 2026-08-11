@@ -1,0 +1,15 @@
+# PC fstab, real UUIDs. Filesystem UUIDs are fine here (userspace resolves
+# them); the kernel cmdline in refind_linux.conf must use PARTUUID instead,
+# because there is no initramfs to resolve a filesystem UUID.
+#
+# nvme1n1p1 ESP (shared with Windows) · nvme1n1p4 root · nvme1n1p5 is kali.
+
+UUID=6641-7CF6                             /boot/efi         vfat   noatime                                           0 2
+UUID=7e1bced5-b47f-4b3e-804c-7d9704ea036c  /                 xfs    defaults,noatime                                  0 0
+
+# noauto: big NTFS volumes shared with Windows, mounted on demand
+UUID=FF6EE27E8F60EAC8                      /home/data        ntfs3  noauto,rw,uid=1000,gid=1000,fmask=133,dmask=022   0 0
+UUID=C3589E50BA73E9FD                      /mnt/lose         ntfs3  noauto,rw,uid=1000,gid=1000,fmask=133,dmask=022   0 0
+
+tmpfs                                      /var/tmp/portage  tmpfs  size=24G,uid=portage,gid=portage,mode=775,noatime 0 0
+tmpfs                                      /tmp              tmpfs  size=4G,nosuid,nodev,noatime                      0 0

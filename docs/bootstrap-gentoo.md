@@ -26,7 +26,7 @@ Clone the repo and provision with your machine's profile:
 ```
 git clone https://github.com/0n3W4y7ick3t/deployLinux
 cd deployLinux/targets/gentoo
-./provision.sh --profile pc --hostname localhost   # or --profile x13
+./provision.sh --profile pc --hostname neverland
 ```
 
 `provision.sh` warns if the detected hardware does not match the profile,
@@ -35,30 +35,46 @@ then runs the numbered scripts:
 | script | does |
 | :--- | :--- |
 | `10-portage.sh` | assembles make.conf (profile head + shared), installs package.use/sets, enables the hyproverlay and GURU overlays, syncs |
+| `15-kernel.sh` | builds the profile's kernel — must precede 20-world, nvidia-drivers needs built sources |
 | `20-world.sh` | installs the base world, the profile's world-extra, and the `@hyprland` set |
 | `30-gpu.sh` | NVIDIA driver + modprobe config, only when an NVIDIA GPU is detected |
 | `40-services.sh` | OpenRC services (elogind, dbus, bluetooth, keyd caps⇄esc swap, ...), sysctl (BBR), EPP policy, hostname |
 | `50-virt.sh` / `51-kali-vm.sh` | libvirt + the opt-in Kali VM (~3.6 GiB download, checksum-verified) — only with `WANT_VIRT=1` |
-| `60-binhost.sh` | binhost **server** (pc) or **client** (x13) per the profile's `BINHOST_ROLE` |
 | `70-ollama.sh` | ollama in docker with GPU — only with `WANT_OLLAMA=1` |
 
 Profile behavior lives in `profiles/<name>/profile.conf`; adding a new
 machine means adding a profile directory, nothing else.
 
-**Kernel policy**: first boot runs the dist-kernel (`gentoo-kernel`) —
-broad drivers, zero fiddling. When the machine is proven, build the lean
-custom kernel from `profiles/<name>/kernel/config-fragment`; each
-profile's `kernel/README.md` explains its options and the upgrade flow.
+**Kernel policy**: custom kernel, no initramfs, built from
+`profiles/<name>/kernel/config-fragment` with that profile's
+`kernel/build.sh`. A dist-kernel does not work here without enabling
+dracut — it carries ext4/xfs as modules. Each profile's
+`kernel/README.md` explains its options and the upgrade flow.
 
-**Bootloader cmdline** (rEFInd `options` line, PC):
-`nvidia_drm.modeset=1 fbdev=1 amd_iommu=on iommu=pt`
+**Bootloader cmdline** (PC), in `/boot/refind_linux.conf`:
+`root=PARTUUID=<gpt-partuuid> rw nvidia_drm.modeset=1 nvidia_drm.fbdev=1 amd_iommu=on iommu=pt amd_pstate=active`
+
+PARTUUID rather than UUID: no initramfs means no userspace to resolve a
+filesystem UUID. `profiles/pc/refind_linux.conf` is the checked-in copy.
+
+`provision.sh` builds it for you via `15-kernel.sh`, before the world
+merge: `nvidia-drivers[modules]` refuses to build without
+`/usr/src/linux/Module.symvers`. To rebuild by hand later:
+
+```
+sudo profiles/pc/kernel/build.sh
+```
+
+**Tailscale name** follows /etc/conf.d/hostname, so the node registers as
+`neverland`. Pin it explicitly if the two ever diverge:
+`tailscale up --hostname=neverland`.
 
 ## 2. User layer (yadm + rice)
 
 ```
 emerge app-admin/yadm    # already in the world list
 yadm clone https://github.com/0n3W4y7ick3t/rice
-yadm config local.class pc      # or: x13 / wsl / server
+yadm config local.class pc      # or: x13 / wsl / server (class is per-machine, not per-distro)
 yadm alt
 yadm bootstrap
 ```
@@ -81,9 +97,6 @@ Log in on tty1 — Hyprland starts automatically. Then:
   `docker run --rm --gpus all nvidia/cuda:12.9.0-base-ubuntu24.04 nvidia-smi`.
 - `minikube start --driver=docker && kubectl get nodes`.
 - `virsh list --all`; run `51-kali-vm.sh` when you want the lab VM.
-- Binhost: on the pc `curl -s localhost/binhost/ | head`; on the x13 an
-  `emerge -pv <anything>` shows `[binary]` (set the server address in
-  `/etc/portage/binrepos.conf` first — Tailscale MagicDNS name preferred).
 - Bluetooth pairs (`bluetoothctl`), fcitx5 types Chinese in kitty and
   Firefox, Caps Lock and Escape are swapped.
 
@@ -92,6 +105,4 @@ Log in on tty1 — Hyprland starts automatically. Then:
 | where | what to fill |
 | :--- | :--- |
 | `~/.config/hypr/machine.conf` (pc) | 27" monitor EDID description |
-| `/etc/portage/binrepos.conf` (x13) | the PC's Tailscale hostname |
-| `targets/gentoo/portage/` CPU flags | regenerate with `cpuid2cpuflags` on the x13 |
-| `targets/gentoo/portage/sets/laptop-extra` | laptop-only packages the PC should also build |
+| `targets/gentoo/portage/` CPU flags | regenerate with `cpuid2cpuflags` after a CPU change |

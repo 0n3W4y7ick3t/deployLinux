@@ -11,7 +11,7 @@ Why: 9800X3D power management and monitoring on the B850 board.
   `amd_pstate=active`, EPP is then set via sysfs (see pc README).
 - `PREEMPT_DYNAMIC`, `HZ_1000`, `NO_HZ_IDLE`, `HIGH_RES_TIMERS` —
   desktop latency defaults; preempt mode stays runtime-switchable.
-- `MICROCODE_AMD`, `EDAC_AMD64` — microcode + RAM error reporting
+- `MICROCODE`, `EDAC_AMD64` — microcode + RAM error reporting
   (EXPO is on, we want to see ECC/EDAC complaints).
 - `SENSORS_K10TEMP`, `SENSORS_NCT6775` — CPU + board sensors,
   NCT6775 family covers the ASUS Super I/O.
@@ -23,7 +23,7 @@ Why: 9800X3D power management and monitoring on the B850 board.
 
 ## Filesystems
 
-Why: ext4 root + xfs data are =y (no initramfs needed to mount root);
+Why: xfs and ext4 are =y, so root mounts with no initramfs;
 everything else modular for occasional media/USB/NFS use. `OVERLAY_FS`
 is what docker's overlay2 uses; tmpfs xattr/ACL for containers too.
 
@@ -78,13 +78,20 @@ Why: exact hardware on the TUF B850-PLUS WIFI.
 ## Deferred / optional (not in the fragment)
 
 - `gentoo-sources` with the experimental USE flag + `MZEN5` processor
-  family — later, once the box is proven stable on dist-kernel.
+  family — later, once the box is proven stable on this config.
 - `preempt=full` — runtime toggle via cmdline if desktop latency ever
   needs it; not a build-time decision.
 - KVM AVIC — leave at default; revisit only for heavy VM interrupt load.
 
 ## Reference cmdline
 
+PARTUUID, not UUID: with no initramfs there is no userspace to resolve a
+filesystem UUID. `fbdev` is a `nvidia_drm` parameter and has to be
+spelled out — a bare `fbdev=1` is not a kernel parameter at all.
+
 ```
-nvidia_drm.modeset=1 fbdev=1 amd_iommu=on iommu=pt amd_pstate=active
+root=PARTUUID=<gpt-partuuid> rw nvidia_drm.modeset=1 nvidia_drm.fbdev=1 amd_iommu=on iommu=pt amd_pstate=active
 ```
+
+Lives in `/boot/refind_linux.conf`; the checked-in copy with this
+machine's PARTUUID is `profiles/pc/refind_linux.conf`.

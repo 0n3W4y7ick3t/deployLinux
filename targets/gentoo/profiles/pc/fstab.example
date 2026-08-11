@@ -1,6 +1,7 @@
-# PC fstab template — replace every UUID with the real ones from blkid.
-UUID=REPLACE-ESP    /boot/efi          vfat   noatime                                                  0 2
-UUID=REPLACE-ROOT   /                  ext4   defaults,noatime                                         0 1
-UUID=REPLACE-DATA   /home/data         xfs    defaults,noatime                                         0 2
-tmpfs               /var/tmp/portage   tmpfs  size=24G,uid=portage,gid=portage,mode=775,noatime        0 0
-tmpfs               /tmp               tmpfs  size=4G,nosuid,nodev,noatime                             0 0
+# Generic template — see fstab for the real one. Replace every UUID from
+# blkid. xfs and btrfs take pass 0 (no boot-time fsck); ext4 takes 1.
+UUID=REPLACE-ESP    /boot/efi          vfat   noatime                                            0 2
+UUID=REPLACE-ROOT   /                  xfs    defaults,noatime                                   0 0
+UUID=REPLACE-DATA   /home/data         xfs    defaults,noatime                                   0 0
+tmpfs               /var/tmp/portage   tmpfs  size=24G,uid=portage,gid=portage,mode=775,noatime  0 0
+tmpfs               /tmp               tmpfs  size=4G,nosuid,nodev,noatime                       0 0

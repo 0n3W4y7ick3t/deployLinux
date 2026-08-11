@@ -1,1 +1,3 @@
-x11-drivers/nvidia-drivers modules kernel-open dist-kernel
+# kernel-open: mandatory on Blackwell, no proprietary module exists.
+# -dist-kernel: custom kernels here, @module-rebuild does the rebuild.
+x11-drivers/nvidia-drivers modules kernel-open -dist-kernel

@@ -23,6 +23,10 @@ for d in package.use package.accept_keywords package.env env sets; do
     mkdir -p "/etc/portage/$d"
     cp -f "$portage_src/$d/"* "/etc/portage/$d/"
 done
+# profile overrides land after the shared files (CPU flags are per-machine)
+if [ -d "$profile_dir/package.use" ]; then
+    cp -f "$profile_dir/package.use/"* /etc/portage/package.use/
+fi
 log "copied package.use, package.accept_keywords, package.env, env, sets"
 
 # make sure the main tree exists before emerging anything
@@ -38,6 +42,15 @@ for repo in hyproverlay guru; do
         eselect repository enable "$repo"
     fi
 done
-emaint sync -a
+# Re-running provision.sh after a failure should not re-sync: the tree is
+# minutes old and rsync.gentoo.org asks for at most one sync a day.
+# SYNC=1 forces it.
+stamp=/var/db/repos/gentoo/metadata/timestamp.chk
+if [ "${SYNC:-0}" != 1 ] && [ -f "$stamp" ] &&
+    [ "$(find "$stamp" -mmin -1440 2>/dev/null)" ]; then
+    log "tree synced less than a day ago, skipping (SYNC=1 to force)"
+else
+    emaint sync -a
+fi
 
 log "10-portage done"

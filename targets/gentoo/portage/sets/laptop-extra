@@ -1,4 +1,0 @@
-# Packages the laptop needs but the PC does not run itself.
-# The weekly binhost cron builds this set with --buildpkg so the X13 can
-# fetch them as binaries. Empty placeholder for now — add atoms as the
-# laptop requests them.

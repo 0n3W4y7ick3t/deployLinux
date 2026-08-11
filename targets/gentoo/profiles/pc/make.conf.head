@@ -1,11 +1,22 @@
 # PC (9800X3D / RTX 5080) machine-specific head.
 # Appended AFTER make.conf.shared by scripts/10-portage.sh.
 
-VIDEO_CARDS="nvidia"
+# native: this machine compiles only for itself, so there is no reason to
+# build below what the CPU can do.
+COMMON_FLAGS="-O2 -pipe -march=native"
+CFLAGS="${COMMON_FLAGS}"
+CXXFLAGS="${COMMON_FLAGS}"
+FCFLAGS="${COMMON_FLAGS}"
+FFLAGS="${COMMON_FLAGS}"
+
+# amdgpu/radeonsi for the 9800X3D's iGPU (board display outputs, fallback);
+# nvidia for the 5080 that drives the real monitors.
+VIDEO_CARDS="nvidia amdgpu radeonsi"
 
 MAKEOPTS="-j16 -l16"
 
-# binhost server: keep binary packages of everything built here
+# not for a binhost any more — binpkgs are the cheap way back from a bad
+# build: emerge --usepkgonly <atom> reinstalls the previous one.
 FEATURES="${FEATURES} buildpkg"
 BINPKG_FORMAT="gpkg"
 PKGDIR="/var/cache/binpkgs"

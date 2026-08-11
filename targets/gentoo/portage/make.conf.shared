@@ -1,15 +1,9 @@
-# Shared make.conf fragment for the Gentoo fleet (PC builds, X13 consumes).
+# Shared make.conf fragment. One Gentoo machine today (the laptop runs
+# Arch), but the shared/head split stays for the next one.
 # Assembly: this file FIRST, then the machine head (make.conf.head),
 # so heads can append to FEATURES/USE.
 
-# znver4 on every box: the PC binhost builds znver4 packages, and on the
-# Zen4 laptop native == znver4 anyway. The Zen5 PC leaves some uplift on
-# the table until the fleet baseline moves.
-COMMON_FLAGS="-O2 -pipe -march=znver4"
-CFLAGS="${COMMON_FLAGS}"
-CXXFLAGS="${COMMON_FLAGS}"
-FCFLAGS="${COMMON_FLAGS}"
-FFLAGS="${COMMON_FLAGS}"
+# COMMON_FLAGS/CFLAGS live in each profile's make.conf.head.
 CHOST="x86_64-pc-linux-gnu"
 
 ACCEPT_KEYWORDS="~amd64"
@@ -18,13 +12,15 @@ ACCEPT_LICENSE="*"
 USE="wayland X elogind dbus udev pipewire pulseaudio screencast bluetooth vulkan opengl egl vaapi libinput zsh-completion zstd lz4 truetype harfbuzz fontconfig jpeg png webp -systemd -cups -nls"
 
 INPUT_DEVICES="libinput"
-L10N="en zh"
+L10N="en zh ja"
 
-# CPU_FLAGS_X86 live in package.use/00cpu-flags (Zen4 baseline from the
-# X13; the Zen5 PC accepts them as a subset). Regenerate with
-# cpuid2cpuflags on the laptop if the fleet baseline ever moves.
+# CPU_FLAGS_X86 live in each profile's package.use/00cpu-flags, generated
+# by cpuid2cpuflags on that machine.
 
-EMERGE_DEFAULT_OPTS="--jobs=1 --load-average=16"
+# --jobs overlaps the serial ./configure phases that dominate the small
+# -package tail; --load-average is what keeps that from oversubscribing.
+# Each machine's own -l lives in MAKEOPTS in its make.conf.head.
+EMERGE_DEFAULT_OPTS="--jobs=4 --load-average=16"
 FEATURES="parallel-fetch parallel-install candy"
 
 LC_MESSAGES=C

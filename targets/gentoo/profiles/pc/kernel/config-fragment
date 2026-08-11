@@ -6,13 +6,28 @@
 #   make olddefconfig
 # Human-readable rationale per group: see config-checklist.md.
 
+# ---- no initramfs ----
+# This box boots with no initrd, which turns three normally-optional
+# symbols into hard requirements.
+# DEVTMPFS_MOUNT: nothing else populates /dev before init runs.
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+# Microcode has to be linked in: late loading is disabled on current
+# kernels, and the usual early path is an initrd we do not have.
+# fam1ah = family 0x1A = Zen5. Check /proc/cpuinfo on a different CPU.
+CONFIG_EXTRA_FIRMWARE="amd-ucode/microcode_amd_fam1ah.bin"
+CONFIG_EXTRA_FIRMWARE_DIR="/lib/firmware"
+# Root fs and its disk must be builtin, never modules: see filesystems
+# below (XFS_FS/EXT4_FS=y) and BLK_DEV_NVME=y.
+
 # ---- platform ----
 CONFIG_X86_AMD_PSTATE=y
 CONFIG_PREEMPT_DYNAMIC=y
 CONFIG_HZ_1000=y
 CONFIG_NO_HZ_IDLE=y
 CONFIG_HIGH_RES_TIMERS=y
-CONFIG_MICROCODE_AMD=y
+# MICROCODE_AMD stopped existing as a separate symbol; MICROCODE covers it
+CONFIG_MICROCODE=y
 CONFIG_SENSORS_K10TEMP=m
 CONFIG_SENSORS_NCT6775=m
 CONFIG_SP5100_TCO=m
@@ -21,6 +36,9 @@ CONFIG_I2C_PIIX4=m
 CONFIG_I2C_CHARDEV=y
 CONFIG_ZRAM=m
 CONFIG_CRYPTO_ZSTD=y
+# 6.12+ split the zram compressors into their own backend symbols
+CONFIG_ZRAM_BACKEND_ZSTD=y
+CONFIG_ZRAM_DEF_COMP_ZSTD=y
 CONFIG_SWAP=y
 CONFIG_EFI=y
 CONFIG_EFI_STUB=y
@@ -48,9 +66,27 @@ CONFIG_TMPFS_POSIX_ACL=y
 # ---- nvidia prerequisites ----
 CONFIG_MTRR=y
 CONFIG_SYSVIPC=y
+# the one hard requirement of nvidia-uvm
 CONFIG_MMU_NOTIFIER=y
+# CUDA unified memory (HMM). Not required to build the modules, but
+# ZONE_DEVICE is unreachable without MEMORY_HOTPLUG, so it must come too.
+# HMM_MIRROR is deliberately absent: it has no prompt and is only ever
+# select-ed by a driver (nouveau, amdxdna), so a fragment cannot set it.
+CONFIG_MEMORY_HOTPLUG=y
+CONFIG_MEMORY_HOTREMOVE=y
+CONFIG_ZONE_DEVICE=y
+CONFIG_DEVICE_PRIVATE=y
 CONFIG_DRM=y
 CONFIG_DRM_FBDEV_EMULATION=y
+# The 9800X3D's integrated Radeon. Drives the board's display outputs and
+# is the fallback if the 5080 misbehaves. It also selects DRM_TTM_HELPER,
+# which nvidia-drivers requires on 6.11+ whenever FBDEV_EMULATION is set
+# and which cannot be set directly — so this replaces the DRM_QXL stub
+# that used to be here purely for that.
+# Consequence: two DRM cards. If hyprland picks the wrong one, pin it with
+# env = AQ_DRM_DEVICES,/dev/dri/card<n> in the rice hyprland.conf.
+CONFIG_DRM_AMDGPU=m
+CONFIG_DRM_AMD_DC=y
 CONFIG_DRM_SIMPLEDRM=y
 CONFIG_SYSFB_SIMPLEFB=y
 CONFIG_FRAMEBUFFER_CONSOLE=y

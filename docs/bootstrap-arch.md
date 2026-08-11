@@ -55,7 +55,7 @@ The shared items from
 [bootstrap-gentoo.md § 3](bootstrap-gentoo.md#3-first-boot-checklist):
 Hyprland on tty1, `hyprctl configerrors`, monitor EDID fill-in (PC),
 `nvidia-smi` + modeset, docker `--gpus all`, minikube, bluetooth, fcitx5,
-caps⇄esc. Skip the binhost items — that's a Gentoo-only concept. The Kali
+caps⇄esc. The Kali
 VM script is reusable as-is:
 [`targets/gentoo/scripts/51-kali-vm.sh`](../targets/gentoo/scripts/51-kali-vm.sh)
 runs on any libvirt host.

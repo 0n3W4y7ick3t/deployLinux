@@ -1,0 +1,22 @@
+# USE flags forced by dependency resolution, not by preference. Every line
+# here is something emerge refused to proceed without while merging the
+# world list. Topical files hold the flags we actually chose.
+#
+# Unversioned on purpose: version-pinned atoms rot on the next bump.
+
+# REQUIRED_USE udev? ( alsa ); via pipewire[X] <- qemu <- libvirt
+media-libs/libcanberra alsa
+# boost[icu] needs nls, which the global USE turns off; via ncmpcpp
+dev-libs/boost nls icu
+# via app-crypt/swtpm <- libvirt[qemu]
+net-libs/gnutls pkcs11 tools
+# via libvirt[virt-network]
+net-dns/dnsmasq script
+# via xdg-utils <- cups[X] <- google-chrome
+app-text/xmlto text
+# via libsecret <- virtual/secret-service <- gnome-keyring
+app-crypt/gcr:0 gtk
+# via libayatana-appindicator <- waybar[tray]
+dev-libs/libdbusmenu gtk3
+# via virtual/minizip <- wireshark[minizip]
+sys-libs/zlib minizip

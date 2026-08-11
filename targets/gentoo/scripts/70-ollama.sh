@@ -22,13 +22,21 @@ fi
 emerge --noreplace app-containers/docker app-containers/docker-cli \
     app-containers/docker-compose app-containers/nvidia-container-toolkit
 
-nvidia-ctk runtime configure --runtime=docker
+if command -v nvidia-ctk >/dev/null 2>&1; then
+    # set -e: a failure here must not abort the whole provision run
+    nvidia-ctk runtime configure --runtime=docker || log "nvidia-ctk failed, rerun after boot"
+else
+    log "nvidia-ctk absent, rerun after boot: nvidia-ctk runtime configure --runtime=docker"
+fi
 
 mkdir -p /opt/ollama
 cat > /opt/ollama/docker-compose.yml <<'EOF'
 services:
   ollama:
     image: ollama/ollama
+    # without this compose names it ollama-ollama-1 and `docker exec
+    # ollama` below cannot find it
+    container_name: ollama
     restart: unless-stopped
     gpus: all
     ports:

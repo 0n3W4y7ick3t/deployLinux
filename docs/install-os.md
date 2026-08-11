@@ -23,22 +23,34 @@ an Arch ISO). Then, as root:
 5. Download the latest **amd64 openrc** stage3 from
    <https://www.gentoo.org/downloads/> into `/mnt/gentoo`.
 6. Unpack it: `cd /mnt/gentoo && tar xpvf stage3-*.tar.xz --xattrs-include='*.*' --numeric-owner`
-7. Mount the ESP: `mkdir -p efi && mount /dev/nvme0n1p1 efi`
+7. Mount the ESP: `mkdir -p boot/efi && mount /dev/nvme0n1p1 boot/efi`
 8. Chroot with this repo's helper: `sh ch_gentoo.sh /mnt/gentoo`
    (get it with `git clone https://github.com/0n3W4y7ick3t/deployLinux`,
    it is in `targets/gentoo/`).
 9. Inside the chroot: `emerge-webrsync && emerge --sync -q`
 10. Pick the profile: `eselect profile list` then
     `eselect profile set default/linux/amd64/23.0` (plain openrc one).
-11. Timezone and locale:
-    `echo "Asia/Tokyo" > /etc/timezone && emerge --config sys-libs/timezone-data`
-12. Kernel: `emerge sys-kernel/gentoo-kernel sys-kernel/linux-firmware`
-13. Write `/etc/fstab` using UUIDs from `blkid`
+11. Read the news: `eselect news read`. Some items need action.
+12. Timezone — set the symlink, `emerge --config` skips an existing one:
+    `ln -sf ../usr/share/zoneinfo/Asia/Tokyo /etc/localtime && echo Asia/Tokyo > /etc/timezone`
+13. Locales: put `en_US.UTF-8 UTF-8`, `zh_CN.UTF-8 UTF-8` and
+    `ja_JP.UTF-8 UTF-8` in `/etc/locale.gen`, then
+    `locale-gen && eselect locale set en_US.utf8`
+14. Write `/etc/fstab` using UUIDs from `blkid`
     (see `targets/gentoo/profiles/pc/fstab.example`).
-14. Set the root password: `passwd`
-15. Bootloader: copy `common/refind/` from this repo onto the ESP and add
-    a boot entry, or `emerge refind && refind-install`.
-16. `exit`, `reboot`, log in as root.
+15. Passwords and your user — do this now, not after reboot, or you get
+    a machine you cannot log into:
+    `passwd`, then
+    `useradd -m -G wheel,video,audio,usb,portage,input,render -s /bin/bash <name>`
+    and `passwd <name>`. Switch the shell to zsh once bootstrap has
+    installed it.
+16. Bootloader: copy `common/refind/` from this repo onto the ESP and add
+    a boot entry, or `emerge refind && refind-install`. Include the
+    driver from `drivers_x64/` matching `/boot`'s filesystem.
+17. `exit`, `reboot`, log in.
+
+The kernel is not built here — `bootstrap-gentoo.md` does it from the
+machine profile, because the config is profile-specific.
 
 Done. Continue with [bootstrap-gentoo.md](bootstrap-gentoo.md).
 
