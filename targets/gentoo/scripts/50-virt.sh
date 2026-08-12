@@ -31,10 +31,29 @@ fi
 # needs a running libvirtd; skipped inside the install chroot
 if rc-service libvirtd status >/dev/null 2>&1; then
     virsh net-autostart default || true
-    virsh net-start default 2>/dev/null || true
+    # autostart only takes effect at the next libvirtd start, so an install
+    # that set it after libvirtd came up leaves the net inactive and every
+    # virt-install dies with "network 'default' is not active".
+    if virsh net-info default 2>/dev/null | grep -q '^Active: *no'; then
+        virsh net-start default || log "WARNING: could not start the default network"
+    fi
 else
-    log "libvirtd not running, run later: virsh net-autostart default"
+    log "libvirtd not running, run later: virsh net-autostart default && virsh net-start default"
 fi
 
-log "reminder: usermod -aG libvirt <user>"
+# groups only apply to new logins, so this needs a re-login to take effect
+virt_user=${VIRT_USER:-${SUDO_USER:-}}
+if [ -n "$virt_user" ]; then
+    for g in libvirt kvm; do
+        getent group "$g" >/dev/null 2>&1 || continue
+        if id -nG "$virt_user" | tr ' ' '\n' | grep -qx "$g"; then
+            log "$virt_user already in $g"
+        else
+            usermod -aG "$g" "$virt_user" && log "added $virt_user to $g"
+        fi
+    done
+else
+    log "no VIRT_USER/SUDO_USER, skipping group setup (usermod -aG libvirt,kvm <user>)"
+fi
+
 log "50-virt done"

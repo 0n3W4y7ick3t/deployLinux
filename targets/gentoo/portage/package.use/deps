@@ -20,3 +20,5 @@ app-crypt/gcr:0 gtk
 dev-libs/libdbusmenu gtk3
 # via virtual/minizip <- wireshark[minizip]
 sys-libs/zlib minizip
+# via spice-gtk <- virt-manager[gui]
+net-misc/spice-gtk usbredir

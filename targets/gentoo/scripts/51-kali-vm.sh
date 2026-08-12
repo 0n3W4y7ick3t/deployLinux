@@ -54,9 +54,16 @@ if [ -z "$qcow2" ]; then
 fi
 [ -n "$qcow2" ] || die "no qcow2 found after extraction"
 
+# virt-install dies with "network 'default' is not active" otherwise, after
+# the whole multi-GB download has already succeeded
+if virsh net-info default 2>/dev/null | grep -q '^Active: *no'; then
+    log "starting the inactive default network"
+    virsh net-start default || die "could not start the default network"
+fi
+
 virt-install --name kali --import \
     --disk "$qcow2" \
-    --memory 8192 --vcpus 4 \
+    --memory "${KALI_MEM:-16384}" --vcpus "${KALI_VCPUS:-8}" \
     --os-variant debiantesting \
     --network default --graphics spice \
     --noautoconsole

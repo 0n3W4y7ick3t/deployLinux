@@ -6,7 +6,8 @@
 # user's dotfiles are broken or their home directory is not mounted.
 #
 # EDITOR/VISUAL/BROWSER come from /etc/env.d/99local via /etc/profile.env,
-# which /etc/zsh/zprofile sources -- do not duplicate them here.
+# which /etc/zsh/zprofile sources (on Arch: /etc/environment via pam_env,
+# generated from the same 99local) -- do not duplicate them here.
 
 HISTFILE=~/.zsh_history
 HISTSIZE=10000

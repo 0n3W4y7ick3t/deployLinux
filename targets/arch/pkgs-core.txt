@@ -4,6 +4,8 @@
 #linux-lts   # fallback kernel, uncomment to install
 base-devel
 git
+# every script in this repo is expected to be shellcheck-clean before commit
+shellcheck
 zsh
 neovim
 tmux

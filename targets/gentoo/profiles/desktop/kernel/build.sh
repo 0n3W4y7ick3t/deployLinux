@@ -68,6 +68,15 @@ grep -qx 'CONFIG_FUSE_FS=y' .config ||
 for sym in CONFIG_LOGO CONFIG_LOGO_LINUX_CLUT224 CONFIG_FRAMEBUFFER_CONSOLE; do
     grep -qx "$sym=y" .config || die "$sym unset: no Tux at boot"
 done
+# libvirt's default network needs the nat chain type and a root htb qdisc;
+# missing either one only shows up as a net-start failure
+for sym in CONFIG_NFT_NAT CONFIG_NFT_REJECT CONFIG_NFT_MASQ \
+           CONFIG_NET_SCH_HTB CONFIG_NET_SCH_SFQ \
+           CONFIG_NET_CLS_U32 CONFIG_NET_CLS_FW \
+           CONFIG_NET_ACT_CSUM CONFIG_NET_ACT_POLICE; do
+    grep -qE "^$sym=[ym]" .config ||
+        die "$sym unset: libvirt's default network will not start"
+done
 log "config checks passed"
 
 make "-j$jobs"

@@ -1,3 +1,7 @@
 # QEMU_SOFTMMU_TARGETS / QEMU_USER_TARGETS are set in make.conf.head
 app-emulation/qemu spice usbredir virtfs virgl opengl vnc io-uring
-app-emulation/libvirt qemu virt-network macvtap
+# policykit: also what creates the libvirt group; without it the rw socket
+# stays root-only and nothing but sudo can drive a VM
+app-emulation/libvirt qemu virt-network macvtap policykit
+# gui: without it only virt-install lands, so a spice VM has no viewer at all
+app-emulation/virt-manager gui

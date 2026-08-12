@@ -19,11 +19,16 @@ gammastep
 keyd
 kanshi
 polkit
+# polkitd alone only answers on D-Bus; without an agent every GUI privilege
+# prompt fails silently. rice exec-once's it.
+hyprpolkitagent
 fcitx5
 fcitx5-gtk
 fcitx5-qt
 fcitx5-chinese-addons
 fcitx5-configtool
+# japanese: rice's .config/fcitx5/profile lists mozc as the second engine
+fcitx5-mozc
 noto-fonts-emoji
 ttf-firacode-nerd
 pipewire

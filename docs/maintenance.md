@@ -1,8 +1,11 @@
 # Maintaining a Gentoo machine
 
-Day-2 operations for the fleet. Install and first bootstrap live in
-[install-os.md](install-os.md) and [bootstrap-gentoo.md](bootstrap-gentoo.md);
-this page is for a machine that already works.
+Day-2 operations for **neverland**, the Gentoo desktop. Install and first
+bootstrap live in [install-os.md](install-os.md) and
+[bootstrap-gentoo.md](bootstrap-gentoo.md); this page is for a machine that
+already works. The X13 runs Arch and has its own, much shorter section at
+the end — most of what follows (portage, kernel builds, rEFInd) simply does
+not apply there.
 
 Read [../CLAUDE.md](../CLAUDE.md) first if you are unsure why anything is
 set up the way it is — particularly the no-initramfs consequences.
@@ -177,6 +180,40 @@ by hand occasionally.
 | Hyprland aborts at start, "no gpus" in `~/.cache/hyprland/session.log` | `AQ_DRM_DEVICES` contains a by-path name — it is a colon-separated list and by-path names contain colons. The pin belongs in rice's `shell/profile` (resolved at login), never in a hyprland config |
 | Hyprland picks the wrong GPU | the profile export failed soft (check `echo $AQ_DRM_DEVICES`) — see rice CLAUDE.md |
 | Windows BSODs 0xED after a Gentoo session | see "Windows will not boot" above; something rw-mounted C: |
+| x13: boots an old kernel after `pacman -Syu` | `/boot/efi` was not mounted when `mkinitcpio -P` ran, so the UKI went to the root fs |
+| x13: no wifi after a reboot | `iwd.service` disabled while NM is configured with `wifi.backend=iwd` |
+
+## The X13 (Arch)
+
+Nothing above applies except the NTFS rules and the general "fix it in the
+repo" reflex. Day-2 there is:
+
+```sh
+sudo pacman -Syu                    # read the news at archlinux.org first
+yay -Sua                            # AUR, as your user
+cd ~/akira/deployLinux && git pull && sudo ./targets/arch/bootstrap.sh
+```
+
+Re-running `bootstrap.sh` is the way to restore any system file it owns; it
+is idempotent and installs nothing that is already current.
+
+**Kernel upgrades are pacman's job**, but two things must hold or the box
+boots a stale kernel with fresh modules:
+
+- `/boot/efi` mounted (from `/etc/fstab`) when `mkinitcpio -P` runs, so the
+  UKI actually lands on the ESP. Check the timestamp under
+  `/boot/efi/EFI/Linux/` after an upgrade.
+- systemd-boot itself updated by `systemd-boot-update.service`
+  (`bootctl status` shows a version mismatch when it is not).
+
+Recovery is an Arch ISO on a USB stick, `mount UUID=… /mnt`,
+`arch-chroot /mnt`. There is no `.old` kernel unless `fallback_uki` is
+enabled in `/etc/mkinitcpio.d/linux.preset` or `linux-lts` is installed —
+consider one of the two before an adventurous upgrade.
+
+The X13's Windows volume is mounted **rw** by deliberate exception (see
+CLAUDE.md). If Windows ever fails to boot after a Linux session, the 0xED
+playbook above is the same, with the X13's own UUID.
 
 ## Services
 
@@ -204,8 +241,10 @@ rc-service <name> status|start|restart
 - Do not `emerge --depclean` `sys-kernel/installkernel`.
 - Do not enable `GTK_IM_MODULE`/`QT_IM_MODULE` on Wayland.
 - Do not touch the kali partition (label `kali`).
-- Do not write to Windows C: (label `Lose`) from Linux — it is mounted
-  `ro` for a reason (0xED, 2026-08) — and never use `mount -t ntfs3`
-  anywhere (banned in modprobe.d; DATA is rw via ntfs-3g only).
+- Do not write to neverland's Windows C: (label `Lose`) from Linux — it is
+  mounted `ro` for a reason (0xED, 2026-08) — and never use
+  `mount -t ntfs3` anywhere (banned in modprobe.d on both machines; DATA is
+  rw via ntfs-3g only). The X13 is the one documented exception, and only
+  while its `powercfg /h off` holds.
 - Do not trust `/dev/nvmeXnY` names in any command — they swap between
   boots. `blkid` first, or use `LABEL=`/`UUID=`.

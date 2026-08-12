@@ -48,5 +48,15 @@ chmod +x /etc/kernel/postinst.d/90-nvidia-modules
 log "wrote /etc/kernel/postinst.d/90-nvidia-modules"
 
 log "reminder: rEFInd options line needs nvidia_drm.modeset=1 (see runbook)"
-log "reminder: usermod -aG video <user>"
+
+gpu_user=${VIRT_USER:-${SUDO_USER:-}}
+if [ -n "$gpu_user" ] && getent group video >/dev/null 2>&1; then
+    if id -nG "$gpu_user" | tr ' ' '\n' | grep -qx video; then
+        log "$gpu_user already in video"
+    else
+        usermod -aG video "$gpu_user" && log "added $gpu_user to video"
+    fi
+else
+    log "no VIRT_USER/SUDO_USER, skipping (usermod -aG video <user>)"
+fi
 log "30-gpu done"

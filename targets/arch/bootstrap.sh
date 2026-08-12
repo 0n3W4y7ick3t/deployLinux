@@ -1,14 +1,18 @@
 #!/bin/sh
-# Generic Arch Linux deploy for both machines (PC and X13 laptop).
+# Generic Arch Linux deploy for both machines (the desktop and the X13 laptop).
 # Post-install: assumes a working base Arch system. Detects the hardware
 # and installs/enables accordingly. Run as root, safe to re-run.
 #
-# Usage: bootstrap.sh [--hostname <name>] [--pc]
+# It deliberately does NOT touch the bootloader: archinstall owns that, and on
+# a UKI machine systemd-boot needs no help from us (see docs/bootstrap-arch.md).
+#
+# Usage: bootstrap.sh [--hostname <name>] [--desktop]
 #   --hostname/-H  set the hostname (default: keep current)
-#   --pc           force PC-class extras (auto-enabled on desktop chassis)
+#   --desktop      force desktop-class extras (auto-enabled on desktop chassis)
 set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+common_dir=$script_dir/../../common
 # shellcheck source=../../common/lib.sh
 . "$script_dir/../../common/lib.sh"
 # shellcheck source=../../common/detect.sh
@@ -18,7 +22,7 @@ require_root
 command -v pacman >/dev/null 2>&1 || die "pacman not found, is this Arch?"
 
 new_hostname=''
-force_pc=0
+force_desktop=0
 while [ $# -gt 0 ]; do
     case $1 in
     --hostname | -H)
@@ -26,8 +30,8 @@ while [ $# -gt 0 ]; do
         new_hostname=$2
         shift 2
         ;;
-    --pc)
-        force_pc=1
+    --desktop | --pc) # --pc: the pre-2026-08 spelling, kept working
+        force_desktop=1
         shift
         ;;
     *)
@@ -48,8 +52,8 @@ chassis=$(detect_chassis)
 bt=$(detect_bluetooth)
 log "detected: gpu=$gpu cpu=$cpu chassis=$chassis bluetooth=$bt"
 
-is_pc=$force_pc
-[ "$chassis" = desktop ] && is_pc=1
+is_desktop=$force_desktop
+[ "$chassis" = desktop ] && is_desktop=1
 is_laptop=0
 [ "$chassis" = laptop ] && is_laptop=1
 
@@ -57,7 +61,10 @@ extra_pkgs=''
 case $gpu in
 nvidia) extra_pkgs="nvidia-open-dkms nvidia-utils linux-headers" ;;
 amd) extra_pkgs="mesa vulkan-radeon libva-mesa-driver" ;;
-*) log "gpu unknown, installing plain mesa"; extra_pkgs="mesa" ;;
+*)
+    log "gpu unknown, installing plain mesa"
+    extra_pkgs="mesa"
+    ;;
 esac
 case $cpu in
 amd) extra_pkgs="$extra_pkgs amd-ucode" ;;
@@ -71,7 +78,7 @@ log "system update + core and desktop sets"
     pkgs pkgs-desktop.txt
     printf '%s\n' "$extra_pkgs" | tr ' ' '\n'
     [ "$is_laptop" -eq 1 ] && pkgs pkgs-laptop.txt
-    [ "$is_pc" -eq 1 ] && pkgs pkgs-pc.txt
+    [ "$is_desktop" -eq 1 ] && pkgs pkgs-desktop-extra.txt
     true
 } | xargs pacman -Syu --needed --noconfirm
 
@@ -83,36 +90,145 @@ EOF
     log "wrote /etc/modprobe.d/nvidia.conf"
 fi
 
+# ---- system config ----
+# The systemd counterpart of targets/gentoo/scripts/40-services.sh. Same files,
+# same reasons; only the mechanism differs (env.d -> /etc/environment,
+# zram-init -> zram-generator, cron.weekly -> fstrim.timer, local.d -> tmpfiles).
+
 # shared keyd remap: caps/esc swap
 mkdir -p /etc/keyd
-cp -f "$script_dir/../../common/keyd-default.conf" /etc/keyd/default.conf
+cp -f "$common_dir/keyd-default.conf" /etc/keyd/default.conf
 log "installed /etc/keyd/default.conf"
 
+# backslashes are pre-doubled in common/issue so agetty prints them
+cp -f "$common_dir/issue" /etc/issue
+log "installed /etc/issue"
+
+# NTFS policy: ntfs-3g (FUSE) only. The in-kernel ntfs3 driver rw-mounted
+# Windows C: on neverland and left its $LogFile unreplayable ->
+# UNMOUNTABLE_BOOT_VOLUME 0xED (2026-08). Arch ships ntfs3 in its stock kernel,
+# so the ban matters more here than on a machine whose kernel we build.
+mkdir -p /etc/modprobe.d
+cat > /etc/modprobe.d/ntfs3.conf <<'EOF'
+# The in-kernel ntfs3 driver is banned: its rw mounts left Windows C:'s
+# $LogFile unreplayable -> UNMOUNTABLE_BOOT_VOLUME 0xED (2026-08).
+# ntfs-3g (FUSE) handles all NTFS; install/bin/false defeats even an
+# explicit `mount -t ntfs3` or a udisks automount.
+blacklist ntfs3
+install ntfs3 /bin/false
+EOF
+log "wrote /etc/modprobe.d/ntfs3.conf (in-kernel ntfs3 banned)"
+
+cat > /etc/sysctl.d/90-bbr.conf <<'EOF'
+net.core.default_qdisc = fq
+net.ipv4.tcp_congestion_control = bbr
+EOF
+# neverland builds BBR into its kernel; Arch ships it as tcp_bbr.ko. Without
+# the module the sysctl is a silent no-op -- the file is applied, the value
+# stays `cubic`, and tcp_available_congestion_control never lists bbr at all.
+echo tcp_bbr > /etc/modules-load.d/bbr.conf
+modprobe tcp_bbr 2>/dev/null || log "modprobe tcp_bbr failed (chroot?), loads on next boot"
+sysctl --system >/dev/null 2>&1 || log "sysctl --system failed (chroot?), applies on next boot"
+log "wrote /etc/sysctl.d/90-bbr.conf + /etc/modules-load.d/bbr.conf"
+
+# Default editor/browser for every account including root. Gentoo gets these
+# from /etc/env.d/99local via env-update; Arch has no env.d, so pam_env's
+# /etc/environment is the equivalent layer -- it applies to every PAM login
+# whatever the shell. Values are generated from the same file so the two
+# distros cannot drift. Quotes are stripped deliberately: pam_env does not
+# treat them as syntax and would export EDITOR as `"nvim"`, quotes included.
+{
+    echo '# Generated by deployLinux targets/arch/bootstrap.sh from'
+    echo '# common/env.d/99local -- edit that file, not this one.'
+    sed -n 's/^\([A-Z_][A-Z_]*\)="\{0,1\}\([^"]*\)"\{0,1\}$/\1=\2/p' "$common_dir/env.d/99local"
+} > /etc/environment
+log "installed /etc/environment (EDITOR/VISUAL=nvim, BROWSER=google-chrome-stable)"
+
+# root logs in with zsh like the user does. Ship a minimal rc with it so the
+# zsh-newuser-install wizard does not ambush the first root login.
+if command -v zsh >/dev/null 2>&1; then
+    cp -f "$common_dir/root-zshrc" /root/.zshrc
+    zsh_path=$(command -v zsh)
+    root_shell=$(getent passwd root | cut -d: -f7)
+    if [ "$root_shell" = "$zsh_path" ]; then
+        log "root shell already $zsh_path"
+    else
+        chsh -s "$zsh_path" root && log "root shell -> $zsh_path (was $root_shell)"
+    fi
+else
+    log "zsh not installed, leaving root shell alone"
+fi
+
+# zram swap at ~1/3 of RAM; no machine in the fleet has a swap partition.
+# zram-generator does the arithmetic itself, so this stays a static file.
+cat > /etc/systemd/zram-generator.conf <<'EOF'
+# ~1/3 of RAM as zstd-compressed swap. The fleet has no swap partition.
+[zram0]
+zram-size = ram / 3
+compression-algorithm = zstd
+EOF
+log "wrote /etc/systemd/zram-generator.conf (ram/3 zstd swap)"
+
+# desktop only: pin EPP to performance (a laptop wants the default for battery)
+if [ "$is_desktop" -eq 1 ]; then
+    cat > /etc/tmpfiles.d/epp.conf <<'EOF'
+# Pin every cpufreq policy to the performance energy/performance preference.
+# The Gentoo twin of this is /etc/local.d/epp.start.
+w /sys/devices/system/cpu/cpufreq/policy*/energy_performance_preference - - - - performance
+EOF
+    systemd-tmpfiles --create /etc/tmpfiles.d/epp.conf 2>/dev/null ||
+        log "systemd-tmpfiles failed (chroot?), applies on next boot"
+    log "wrote /etc/tmpfiles.d/epp.conf"
+fi
+
 # ---- services ----
-systemctl enable NetworkManager.service   # iwd alternative: see README
+systemctl enable NetworkManager.service
 systemctl enable --now keyd.service 2>/dev/null || systemctl enable keyd.service
+systemctl enable fstrim.timer # weekly TRIM; Gentoo uses a cron.weekly hook
 [ "$bt" = yes ] && systemctl enable bluetooth.service
-[ "$is_laptop" -eq 1 ] && systemctl enable tlp.service
-if [ "$is_pc" -eq 1 ]; then
+if [ "$is_laptop" -eq 1 ]; then
+    # power-profiles-daemon and TLP own the same knobs and Conflicts= each
+    # other. Both installed means PPD wins the restart race and TLP dies with
+    # SIGTERM in the middle of "Applying power save settings", leaving a failed
+    # unit and no power management at all. Masking is what upstream advises.
+    systemctl mask --now power-profiles-daemon.service 2>/dev/null ||
+        log "could not mask power-profiles-daemon (not installed?)"
+    systemctl enable --now tlp.service 2>/dev/null || systemctl enable tlp.service
+    # iwd as NetworkManager's wifi backend. It must be enabled, not left to
+    # D-Bus activation: NM starts it on demand often enough to look fine and
+    # then loses the wifi device on a boot where it does not.
+    mkdir -p /etc/NetworkManager/conf.d
+    cat > /etc/NetworkManager/conf.d/wifi_backend.conf <<'EOF'
+[device]
+wifi.backend=iwd
+EOF
+    systemctl enable iwd.service
+    log "wifi: NetworkManager + iwd backend"
+fi
+if [ "$is_desktop" -eq 1 ]; then
     systemctl enable docker.service libvirtd.service tailscaled.service
     log "after first start, run: virsh net-autostart default"
 fi
 
 # ---- hostname ----
+# Not `hostname`: that binary lives in inetutils, which is not part of a base
+# Arch install, so the old call died with "command not found" and logged an
+# empty name. uname -n is coreutils and always there.
+current_hostname=$(uname -n)
 if [ -n "$new_hostname" ]; then
-    if [ "$(hostname)" = "$new_hostname" ]; then
+    if [ "$current_hostname" = "$new_hostname" ]; then
         log "hostname already $new_hostname"
     else
         hostnamectl set-hostname "$new_hostname"
         log "hostname set to $new_hostname"
     fi
 else
-    log "keeping current hostname: $(hostname)"
+    log "keeping current hostname: $current_hostname"
 fi
 
 # ---- handoff ----
 yadm_class=x13
-[ "$is_pc" -eq 1 ] && yadm_class=desktop
+[ "$is_desktop" -eq 1 ] && yadm_class=desktop
 log "done. AUR packages and dotfiles are piloted as your user:"
 cat <<EOF
   yay -S --needed - < $script_dir/pkgs-aur.txt   # skip if no yay

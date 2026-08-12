@@ -9,10 +9,13 @@ packages, services. The **user layer** (dotfiles, Hyprland config) is a
 separate repo, [rice](https://github.com/0n3W4y7ick3t/rice), deployed
 with yadm. Keep the split: if it lives in `$HOME`, it belongs in rice.
 
-Two machines, both Gentoo + OpenRC + Hyprland (Wayland):
+Two machines. Both run Hyprland on Wayland and share the rice user layer;
+**everything below Hyprland differs**, and that is deliberate:
 
-Gentoo runs on **one** machine: `desktop` / **neverland** — Ryzen 9800X3D
-(Zen5), RTX 5080, TUF B850-PLUS. OpenRC + Hyprland (Wayland).
+| | yadm class | distro / init | hardware | bootloader |
+| :--- | :--- | :--- | :--- | :--- |
+| **neverland** | `desktop` | Gentoo + OpenRC | Ryzen 9800X3D (Zen5), RTX 5080, TUF B850-PLUS | rEFInd |
+| **x13** | `x13` | Arch + systemd | ThinkPad X13 Gen 4, AMD, integrated Radeon | systemd-boot + UKI |
 
 **The ThinkPad X13 runs Arch** (`targets/arch`), settled 2026-08-11 after
 trying the alternatives. It was a Gentoo binhost client; both the binhost
@@ -31,19 +34,31 @@ reintroduce a lowest-common-denominator without a reason.
 ## Layout
 
 ```
-common/          lib.sh, detect.sh, keyd config, vendored rEFInd + fonts
+common/          lib.sh, detect.sh, keyd config, issue, env.d, root-zshrc,
+                 vendored rEFInd + fonts — shared by every target
 docs/            install-os.md, bootstrap-{gentoo,arch}.md, maintenance.md
-targets/gentoo/
+targets/gentoo/  neverland
   provision.sh   entry point: runs scripts/ in order for a profile
   ch_gentoo.sh   chroot helper
   world          base package list (fleet-wide)
-  scripts/       10-portage 15-kernel 20-world 30-gpu 40-services
+  scripts/       10-portage 15-kernel 20-world 25-fonts 30-gpu 40-services
                                 50-virt 51-kali-vm(opt-in) 70-ollama
   portage/       make.conf.shared, package.use/, sets/, env/
   profiles/<n>/  profile.conf, make.conf.head, world-extra, fstab, kernel/
+targets/arch/    x13 — one detecting bootstrap.sh + flat pkgs-*.txt lists
+targets/server/  headless boxes
+targets/wsl2-arch/
 ```
 
-**Adding a machine = adding `profiles/<name>/`.** The scripts never change.
+**Adding a Gentoo machine = adding `profiles/<name>/`.** The scripts never
+change. The Arch target has no profiles at all: `common/detect.sh` decides
+GPU/CPU/chassis at run time, so adding a machine there is adding nothing.
+
+`targets/arch/bootstrap.sh` is the systemd counterpart of
+`targets/gentoo/scripts/40-services.sh` — same files, same reasons,
+different mechanism (`/etc/environment` for env.d, zram-generator for
+zram-init, `fstrim.timer` for cron.weekly, tmpfiles for local.d). **Change
+one, check the other.**
 
 ## Conventions
 
@@ -58,16 +73,21 @@ targets/gentoo/
   a flag in `deps` can be deleted the day its consumer goes, and knowing
   *which* consumer is the whole point.
 - Machines are told apart by **yadm class**, not hostname. Hostnames are
-  free (`neverland`); `yadm config local.class desktop` is what selects files.
+  free (`neverland`, `x13`); `yadm config local.class desktop` (or `x13`)
+  is what selects files. The class was renamed `pc` → `desktop` on
+  2026-08-12; `--pc` survives only as an alias in the Arch bootstrap.
 - Commits: no `Co-Authored-By` trailer. Don't push without asking.
 
 ## Hard-won gotchas
 
 These cost real debugging during the first end-to-end install. None of
-them produce an obvious error at the point you make the mistake.
+them produce an obvious error at the point you make the mistake. Unless a
+gotcha says otherwise it is about **neverland/Gentoo**; the NTFS,
+bootloader and fcitx5 ones apply fleet-wide.
 
-**No initramfs anywhere.** `installkernel[-dracut]`, and the kernels build
-their root filesystem in. Consequences:
+**No initramfs on neverland.** `installkernel[-dracut]`, and the kernels
+build their root filesystem in. (The X13 is ordinary Arch: mkinitcpio, and
+the initramfs is inside its UKI.) Consequences on the desktop:
 
 - The cmdline must use `root=PARTUUID=`, never `root=UUID=`. The kernel
   cannot resolve filesystem UUIDs without userspace.
@@ -117,12 +137,47 @@ hard reset) left C:'s `$LogFile` blanked, which `ntfs.sys` refuses on a
 boot volume: Windows died with `UNMOUNTABLE_BOOT_VOLUME 0xED` (2026-08)
 and needed a WinPE `chkdsk C: /f`. The ban is enforced three ways: fstab
 mounts NTFS with `ntfs-3g` (FUSE) only and C: read-only, `/etc/modprobe.d/ntfs3.conf`
-defeats even an explicit `mount -t ntfs3` (written by `40-services.sh`),
+defeats even an explicit `mount -t ntfs3` (written by `40-services.sh` on
+Gentoo and by `targets/arch/bootstrap.sh` on Arch — Arch's stock kernel
+*does* build ntfs3, so the modprobe ban is the only thing standing there),
 and the desktop kernel no longer builds the module (`build.sh` asserts it
 stays gone, and that `FUSE_FS=y` stays). Honest caveat: *any* rw NTFS
 mount empties the journal by design — Windows accepts that; it is only
 ever fatal in combination with an OS volume and an unclean end. Data
 volumes risk at most a chkdsk.
+
+**The X13 is a deliberate exception to the read-only half, and only that
+half.** Its `nvme0n1p3` *is* Windows 11's C: and fstab mounts it `rw` at
+`/mnt/DATA` via ntfs-3g — chosen knowingly on 2026-08-13, after the 0xED
+story above was on the table. What makes it survivable, and what must stay
+true: `powercfg /h off` in Windows (no `hiberfil.sys`, no fast startup, so
+Linux never meets a half-shut-down volume), ntfs-3g only, ntfs3 banned,
+and no hard resets out of a session that wrote to it. If Windows there
+ever BSODs 0xED, this is the first suspect and the mount goes `ro`.
+Do not copy the exception to neverland: C: there stays `ro`.
+
+**Bootloaders are per-machine on purpose (settled 2026-08-13).** neverland
+uses rEFInd, x13 uses systemd-boot. That is not drift — each matches its
+kernel layout, and the reasoning is recorded here so nobody relitigates
+it. neverland has no initramfs and `/boot` is a *directory* on the xfs
+root, so the loader itself has to read xfs: rEFInd does it with
+`EFI/refind/drivers/xfs_x64.efi`. systemd-boot cannot — it loads only from
+the ESP or an XBOOTLDR partition, so adopting it would mean copying
+`vmlinuz` and `vmlinuz.old` onto a 317M ESP shared with Windows on every
+kernel build, through an `installkernel[systemd-boot]` hook, to gain
+nothing. The X13 is the mirror image: mkinitcpio already builds a UKI at
+`EFI/Linux/arch-linux.efi`, and systemd-boot auto-discovers it *and*
+Windows' `bootmgfw.efi` with no config, keeps TPM2 measurement and boot
+counting, and updates itself via `systemd-boot-update.service`. The
+rEFInd that predated Arch on that ESP was removed on 2026-08-13: it was
+not a pacman package, so nothing would ever have updated it, and two
+loaders in `BootOrder` is a maintenance trap with no upside.
+**GRUB2 was considered and rejected for both** — it can read xfs, so it
+would work on neverland, but it swaps a 200KB loader that already works
+for `grub-mkconfig`, os-prober and a much larger surface, and none of its
+distinguishing features buy this fleet anything. Do not "unify" the two
+machines on one loader; do not add a bootloader step to
+`targets/arch/bootstrap.sh`.
 
 **RTX 5080 is Blackwell**: `kernel-open` is mandatory, there is no
 proprietary module. `dist-kernel` USE is off — `@module-rebuild` via the
@@ -131,6 +186,25 @@ postinst hook does the rebuilds.
 **First `emerge -uDN @world` on a fresh stage3 hits a dependency cycle**
 (`pillow[truetype]` → `harfbuzz` → `glib` → `docutils` → `pillow`).
 `20-world.sh` breaks it with a one-shot `pillow[-truetype]`.
+
+**libvirt's `default` network stays inactive after a fresh provision.**
+`virsh net-autostart` only takes effect at the *next* libvirtd start, so a run
+that enables it after libvirtd is already up leaves the network `Autostart:
+yes / Active: no`. Everything looks fine until a `virt-install` dies with
+`network 'default' is not active` — for `51-kali-vm.sh` that is *after* a
+3.6 GB download. Both `50-virt.sh` and `51-kali-vm.sh` now check `net-info`
+and `net-start` it.
+
+**A VM you cannot see or control is the default outcome here.** Three
+separate things have to be right, and none of them are on by default:
+`app-emulation/virt-manager[gui]` (without it only `virt-install` is
+installed — a `--graphics spice` domain has no viewer at all),
+`app-emulation/libvirt[policykit]` (this is what creates the `libvirt` group
+and the polkit rules; without it the rw socket is root-only `0700` and only
+sudo can drive a VM), and actual group membership. `50-virt.sh`/`30-gpu.sh`
+used to just `log "reminder: usermod ..."` and never do it; they now add
+`${VIRT_USER:-$SUDO_USER}` to `libvirt`/`kvm`/`video`. Group changes need a
+re-login.
 
 **fcitx5 on Wayland**: set `XMODIFIERS` only. Forcing `GTK_IM_MODULE` or
 `QT_IM_MODULE` pushes GTK4/Qt6 onto the X11 path and breaks the candidate
@@ -168,6 +242,29 @@ Second disk (2T): NTFS label `DATA`, UUID `FF6EE27E8F60EAC8` →
 `/boot` is a directory on the xfs root, not a partition. rEFInd reads it
 using `EFI/refind/drivers/xfs_x64.efi` — if that driver goes, the kernel
 vanishes from the boot menu.
+
+## x13: disk facts
+
+One NVMe (931.5G), three partitions, dual-boot with Windows 11:
+
+| what | stable identity | mount |
+| :--- | :--- | :--- |
+| ESP (p1, 500M) | vfat UUID `CF81-B871` | `/boot/efi`, shared with Windows, passno 0 |
+| root (p2, 300G) | xfs UUID `3ecf2c79-e029-4cbb-a697-661b06f53320` | `/` |
+| Windows C: (p3, 631G) | ntfs label `Windows`, UUID `DF789AE0EAFFCC6C` | `/mnt/DATA`, **rw** — the documented exception above |
+
+No swap partition (zram, like neverland). Windows here also has no
+recovery partition — `$WINRE_BACKUP_PARTITION.MARKER` sits on its root,
+same resize practice as the desktop — so WinPE media is again the only
+recovery path.
+
+**The ESP must stay in `/etc/fstab`.** It is where mkinitcpio writes the
+UKI. If it is ever not mounted at upgrade time, `mkinitcpio -P` writes
+`EFI/Linux/arch-linux.efi` into an empty directory on the xfs root, the
+ESP keeps the previous kernel, and the machine boots an old kernel against
+new `/usr/lib/modules` — which fails in a way that looks like anything but
+a mount problem. Leaving it to systemd's gpt-auto (the state archinstall
+left behind) works until it does not.
 
 ## Recovering a machine that will not boot
 
@@ -214,7 +311,7 @@ on the Ventoy USB's `os/` folder and on `DATA/Downloads`.
 
 **Accounts still carry the throwaway install password — change them.**
 
-## After reboot — TODO (2026-08-12)
+## neverland: after reboot — TODO (2026-08-12)
 
 Work top to bottom; Windows first (its repair finishes on boot), Gentoo
 second. Before rebooting: both monitor cables belong on the 5080.
@@ -248,3 +345,61 @@ second. Before rebooting: both monitor cables belong on the 5080.
    redundant (the ISO replaces it) — reclaim it into the exfat data
    partition whenever convenient, or keep it as a belt-and-suspenders
    boot path.
+
+## State of the x13 deploy — 2026-08-13
+
+Arch installed 2026-08-12 with archinstall; `targets/arch/bootstrap.sh` ran
+the same evening; audited against this repo on 2026-08-13. Working: tty1 →
+Hyprland 0.56.2 on eDP-1 (1920x1200@60, scale 1.25), keyd, NetworkManager
+with the iwd backend, bluetooth, pipewire (socket-activated by systemd — no
+`gentoo-pipewire-launcher` here), fcitx5, yadm `local.class x13` with
+`machine.conf` correctly alternated.
+
+What the audit found, and what it means for the repo:
+
+- The Arch target only ever did packages + four services. Everything
+  `40-services.sh` writes on Gentoo — the ntfs3 ban, BBR, `/etc/issue`,
+  editor/browser defaults, root-on-zsh — simply did not exist here.
+  `bootstrap.sh` now covers all of it; re-run it to apply.
+- `/etc/NetworkManager/conf.d/wifi_backend.conf` and the iwd service were
+  hand-set during install and nothing in the repo reproduced them. Now the
+  laptop branch writes both.
+- rice shipped two Gentoo-only lines in the *shared* `hyprland.conf` — the
+  hyprexpo plugin path and `gentoo-pipewire-launcher`. The plugin one was a
+  live `hyprctl configerrors` failure on this machine. Both moved to
+  `machine.conf##class.desktop`.
+- rEFInd from the pre-Arch install was still on the ESP behind
+  systemd-boot; removed. See the bootloader gotcha.
+
+Three bugs only surfaced when `bootstrap.sh` first ran for real, all fixed
+in the script and worth knowing before writing the next one:
+
+- **`hostname` does not exist on Arch.** It ships in `inetutils`, not base.
+  Use `uname -n`.
+- **A sysctl file is not enough for BBR.** neverland builds it into the
+  kernel; Arch ships `tcp_bbr.ko`, and without the module the setting is a
+  silent no-op — `cubic` stays, and `bbr` never even appears in
+  `tcp_available_congestion_control`. Hence `modules-load.d` + `sysctl
+  --system`.
+- **power-profiles-daemon fights TLP.** archinstall leaves PPD installed;
+  the two `Conflicts=` each other, PPD wins the restart race and SIGTERMs
+  tlp mid-apply ("Job for tlp.service canceled"), leaving no power
+  management at all. The laptop branch masks PPD first.
+
+Done 2026-08-13: rEFInd out of NVRAM and off the ESP, ESP pinned in fstab,
+bootstrap re-run clean (tlp active, PPD masked, BBR live, ntfs3 refused),
+mozc restored in `.config/fcitx5/profile` — note the ordering trap there,
+fcitx5 saves its in-memory config on SIGTERM, so `yadm checkout` has to
+come *after* the kill, not before.
+
+Still open:
+
+1. In Windows: `powercfg /h off`, then `fsutil dirty query C:`. The rw
+   exception on `/mnt/DATA` is only acceptable once this is done.
+2. Reboot — `linux-firmware` was upgraded, and it is the real test of the
+   fstab ESP and the single bootloader. Re-check: one loader in the
+   firmware menu, `findmnt /boot/efi`, wifi up, `hyprctl configerrors`
+   empty.
+3. Change the throwaway install password here too.
+4. Leftovers on the ESP from the pre-Arch era: `EFI/HackBGRT`, `EFI/tools`
+   (Mar 2024). Harmless, delete when curious.

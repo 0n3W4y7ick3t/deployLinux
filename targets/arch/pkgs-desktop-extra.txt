@@ -1,0 +1,17 @@
+# desktop-class extras: containers, k8s, virtualization, network analysis
+# (installed on a desktop chassis or with --desktop; the laptop skips these)
+docker
+docker-compose
+nvidia-container-toolkit
+minikube
+kubectl
+k9s
+helm
+qemu-full
+libvirt
+virt-manager
+dnsmasq
+nmap
+wireshark-qt
+tailscale
+7zip

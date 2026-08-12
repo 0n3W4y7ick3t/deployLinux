@@ -196,6 +196,16 @@ CONFIG_NF_TABLES_BRIDGE=m
 CONFIG_NFT_MASQ=m
 CONFIG_NFT_CT=m
 CONFIG_NF_NAT_MASQUERADE=y
+# nft_chain_nat: the `type nat` chain itself. NFT_MASQ is only the expression,
+# so without this libvirt's default network fails to start with
+# "Failed to apply firewall command 'nft add chain ip libvirt_network guest_nat
+# { type nat hook postrouting ... }': No such file or directory".
+CONFIG_NFT_NAT=m
+# The full set of nft statements libvirt's network driver emits is
+# accept/counter/return/reject/masquerade/snat (strings on
+# libvirt_driver_network.so). accept/counter/return are nf_tables core,
+# masquerade is NFT_MASQ, snat is NFT_NAT — reject needs its own symbol.
+CONFIG_NFT_REJECT=m
 # BRIDGE_NETFILTER (docker's bridge networking) is gated behind
 # NETFILTER_ADVANCED; without it olddefconfig drops the line silently.
 CONFIG_NETFILTER_ADVANCED=y
@@ -206,6 +216,21 @@ CONFIG_IP_VS_WRR=m
 CONFIG_IP_VS_SH=m
 CONFIG_IP_SET=m
 CONFIG_NET_SCHED=y
+# libvirt's whole tc path, needed before `virsh net-start default` works. It
+# puts a root htb qdisc on virbr0 for every network even with no <bandwidth>,
+# then adds a u32 filter with `action csum` to fix DHCP checksums for virtio.
+# Each missing symbol only shows up as a net-start failure several layers from
+# where it was configured, so enable the set, not one at a time:
+#   htb/sfq/ingress  qdiscs      u32/fw  classifiers
+#   csum             DHCP fixup  police/gact/mirred  QoS actions
+CONFIG_NET_SCH_HTB=m
+CONFIG_NET_SCH_SFQ=m
+CONFIG_NET_CLS_U32=m
+CONFIG_NET_CLS_FW=m
+CONFIG_NET_ACT_CSUM=m
+CONFIG_NET_ACT_POLICE=m
+CONFIG_NET_ACT_GACT=m
+CONFIG_NET_ACT_MIRRED=m
 CONFIG_NET_SCH_INGRESS=m
 CONFIG_NET_CLS_BPF=m
 CONFIG_NET_SCH_FQ=y

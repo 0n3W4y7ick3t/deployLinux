@@ -21,6 +21,7 @@ sys-cluster/k9scli
 app-emulation/qemu
 app-emulation/libvirt
 app-emulation/virt-manager
+app-emulation/virt-viewer
 
 # net analysis
 net-analyzer/nmap
