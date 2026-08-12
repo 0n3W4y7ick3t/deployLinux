@@ -26,7 +26,7 @@ with a comment naming the consumer, then:
 
 ```sh
 cd /deploy/deployLinux && git pull
-sudo GENTOO_PROFILE=pc sh targets/gentoo/scripts/10-portage.sh
+sudo GENTOO_PROFILE=desktop sh targets/gentoo/scripts/10-portage.sh
 ```
 
 `10-portage.sh` skips the tree sync if it ran in the last day
@@ -40,7 +40,7 @@ stays reviewable and symbols renamed upstream do not silently persist.
 
 ```sh
 sudo emerge -u sys-kernel/gentoo-sources
-sudo /deploy/deployLinux/targets/gentoo/profiles/pc/kernel/build.sh
+sudo /deploy/deployLinux/targets/gentoo/profiles/desktop/kernel/build.sh
 ```
 
 It selects the newest source tree, merges the fragment, **asserts** the
@@ -118,16 +118,46 @@ Pick the entry rEFInd offers for the **previous** kernel (`.old`) first.
 If that works, the new kernel is the problem — rebuild it and check the
 assertions in `build.sh`.
 
-If nothing boots, use a live USB:
+If nothing boots, use a live USB. Mount by **label/UUID only** — the
+NVMe device names swap between boots on this board, and an earlier
+version of this very recipe pointed at what is today the NTFS DATA disk:
 
 ```sh
-mount /dev/nvme1n1p4 /mnt/gentoo                 # xfs root, label "gentoo"
-mount /dev/nvme1n1p1 /mnt/gentoo/boot/efi        # ESP
+mount LABEL=gentoo /mnt/gentoo
+mount UUID=6641-7CF6 /mnt/gentoo/boot/efi        # the shared ESP
 sh /mnt/gentoo/deploy/deployLinux/targets/gentoo/ch_gentoo.sh /mnt/gentoo
 source /etc/profile
 ```
 
 Then re-run whatever failed. All scripts are idempotent.
+
+### Windows will not boot: UNMOUNTABLE_BOOT_VOLUME (0xED)
+
+Seen 2026-08: `ntfs.sys` refuses to mount C: at boot, from both rEFInd's
+Windows entry and Windows Boot Manager directly. Root cause was
+Linux-side: rw mounts with the in-kernel `ntfs3` driver (plus one hard
+reset) left C:'s `$LogFile` journal blanked. Windows' own event log
+showed a clean final shutdown — the volume was healthy until we touched
+it. Playbook, from a live USB:
+
+```sh
+DEV=$(readlink -f /dev/disk/by-uuid/C3589E50BA73E9FD)   # C:, never trust nvmeXnY
+sudo ntfsfix -n "$DEV"                 # dry-run diagnosis: boot sector, MFT mirror
+sudo ntfsresize --info --no-action "$DEV"   # full consistency check, read-only
+sudo ntfscat "$DEV" '$LogFile' | head -c 4096 | xxd | head -3   # all ff = blanked journal
+# safety net before any repair (metadata-only undo image, read-only on source):
+sudo ntfsclone --metadata --save-image -o /mnt/gentoo/root/lose-meta.img "$DEV"
+```
+
+The actual repair is Windows-side — Linux cannot write a Windows-native
+journal: boot WinPE (`WePE64.iso` in the Ventoy menu, or the PE partition
+via the firmware boot menu) and run `chkdsk C: /f`, then reboot. In the
+repaired Windows: `fsutil dirty query C:` and `powercfg /h off`.
+Prevention is already deployed: C: has no rw path from Gentoo (fstab ro +
+`ntfs-3g` only), and `ntfs3` is banned in `/etc/modprobe.d/ntfs3.conf`
+and gone from the kernel. Related: the ESP is no longer auto-fsck'd at
+boot (passno 0) — run `sudo fsck.vfat -n /dev/disk/by-uuid/6641-7CF6`
+by hand occasionally.
 
 ### Symptom table
 
@@ -144,7 +174,9 @@ Then re-run whatever failed. All scripts are idempotent.
 | microcode loaded late | `CONFIG_EXTRA_FIRMWARE` did not take — check the path exists under `/lib/firmware` |
 | Japanese renders as boxes | `media-fonts/noto-cjk` missing |
 | IME popup misplaced in GTK4/Qt6 | something is exporting `GTK_IM_MODULE`/`QT_IM_MODULE` — it must not be set on Wayland |
-| Hyprland picks the wrong GPU | only if a second DRM card exists; set `AQ_DRM_DEVICES` |
+| Hyprland aborts at start, "no gpus" in `~/.cache/hyprland/session.log` | `AQ_DRM_DEVICES` contains a by-path name — it is a colon-separated list and by-path names contain colons. The pin belongs in rice's `shell/profile` (resolved at login), never in a hyprland config |
+| Hyprland picks the wrong GPU | the profile export failed soft (check `echo $AQ_DRM_DEVICES`) — see rice CLAUDE.md |
+| Windows BSODs 0xED after a Gentoo session | see "Windows will not boot" above; something rw-mounted C: |
 
 ## Services
 
@@ -171,4 +203,9 @@ rc-service <name> status|start|restart
 - Do not add `sys-kernel/gentoo-kernel` without also enabling dracut.
 - Do not `emerge --depclean` `sys-kernel/installkernel`.
 - Do not enable `GTK_IM_MODULE`/`QT_IM_MODULE` on Wayland.
-- Do not touch `/dev/nvme1n1p5` (kali) or the Windows NTFS volumes.
+- Do not touch the kali partition (label `kali`).
+- Do not write to Windows C: (label `Lose`) from Linux — it is mounted
+  `ro` for a reason (0xED, 2026-08) — and never use `mount -t ntfs3`
+  anywhere (banned in modprobe.d; DATA is rw via ntfs-3g only).
+- Do not trust `/dev/nvmeXnY` names in any command — they swap between
+  boots. `blkid` first, or use `LABEL=`/`UUID=`.

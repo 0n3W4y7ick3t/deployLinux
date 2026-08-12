@@ -1,0 +1,25 @@
+# PC fstab, real UUIDs. Filesystem UUIDs are fine here (userspace resolves
+# them); the kernel cmdline in refind_linux.conf must use PARTUUID instead,
+# because there is no initramfs to resolve a filesystem UUID.
+#
+# nvmeXnY names swap between boots on this board — never put them in
+# commands or configs; the UUIDs below are authoritative (`blkid` to map).
+# The ESP is passno 0: it is shared with Windows, and OpenRC auto-running
+# fsck.fat on it every boot is unwanted cross-OS interference. Run
+# `fsck.vfat -n` on it by hand once in a while instead.
+#
+# NTFS mounts are ntfs-3g (FUSE) only — the in-kernel ntfs3 driver is banned
+# (modprobe.d + kernel config): its rw mounts blanked the Windows C: $LogFile
+# and cost an UNMOUNTABLE_BOOT_VOLUME 0xED repair (2026-08).
+# C: ("Lose") is read-only on principle; DATA is the writable one.
+
+UUID=6641-7CF6                             /boot/efi         vfat     noatime                                                         0 0
+UUID=7e1bced5-b47f-4b3e-804c-7d9704ea036c  /                 xfs      defaults,noatime                                                0 0
+
+# DATA is auto: $HOME/pictures lives on it, and the wallpaper symlink
+# hyprpaper preloads dangles at login otherwise. C: stays on demand.
+UUID=FF6EE27E8F60EAC8                      /mnt/DATA         ntfs-3g  auto,rw,windows_names,uid=1000,gid=1000,fmask=133,dmask=022    0 0
+UUID=C3589E50BA73E9FD                      /mnt/LOSE         ntfs-3g  noauto,ro,uid=1000,gid=1000,fmask=133,dmask=022                 0 0
+
+tmpfs                                      /var/tmp/portage  tmpfs    size=24G,uid=portage,gid=portage,mode=775,noatime               0 0
+tmpfs                                      /tmp              tmpfs    size=4G,nosuid,nodev,noatime                                    0 0

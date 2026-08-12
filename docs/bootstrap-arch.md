@@ -45,7 +45,7 @@ Short version:
 ```
 sudo pacman -S --needed yadm
 yadm clone https://github.com/0n3W4y7ick3t/rice
-yadm config local.class pc   # or x13
+yadm config local.class desktop   # or x13
 yadm alt && yadm bootstrap
 ```
 

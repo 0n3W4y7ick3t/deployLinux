@@ -94,4 +94,4 @@ root=PARTUUID=<gpt-partuuid> rw nvidia_drm.modeset=1 nvidia_drm.fbdev=1 amd_iomm
 ```
 
 Lives in `/boot/refind_linux.conf`; the checked-in copy with this
-machine's PARTUUID is `profiles/pc/refind_linux.conf`.
+machine's PARTUUID is `profiles/desktop/refind_linux.conf`.

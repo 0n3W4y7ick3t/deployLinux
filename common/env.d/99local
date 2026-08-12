@@ -1,0 +1,11 @@
+# Fleet-wide default editor and browser.
+#
+# env.d is the right layer for these rather than a shell rc: env-update bakes
+# them into /etc/profile.env, which both /etc/profile and /etc/zsh/zprofile
+# source, so root and every normal user get them regardless of login shell.
+#
+# rice's .config/shell/profile exports the same two for leon's interactive
+# shells; keep the values in step if either side changes.
+EDITOR="nvim"
+VISUAL="nvim"
+BROWSER="google-chrome-stable"

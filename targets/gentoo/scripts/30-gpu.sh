@@ -41,7 +41,7 @@ cat > /etc/kernel/postinst.d/90-nvidia-modules <<'EOF'
 # Do not emerge from here: this runs inside `make install`, whose
 # environment breaks nested builds and whose exit status this becomes.
 echo ">>> kernel installed — run 'emerge @module-rebuild' for nvidia.ko"
-echo ">>> (profiles/pc/kernel/build.sh already does this for you)"
+echo ">>> (profiles/desktop/kernel/build.sh already does this for you)"
 exit 0
 EOF
 chmod +x /etc/kernel/postinst.d/90-nvidia-modules

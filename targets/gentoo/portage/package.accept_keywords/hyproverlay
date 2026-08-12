@@ -1,2 +1,4 @@
 # everything from the hyprland overlay
 */*::hyproverlay
+# live ebuild: no KEYWORDS at all, so ** is required
+hyprland-plugin/hyprexpo-sandwichfarm **

@@ -1,0 +1,12 @@
+# Firewall backend.
+#
+# The kernel is built nftables-only (see profiles/pc/kernel/config-fragment:
+# the legacy xtables core behind CONFIG_NETFILTER_XTABLES_LEGACY is off, so
+# ip_tables.ko does not exist). USE=nftables makes net-firewall/iptables ship
+# xtables-nft-multi, which is what lets docker and libvirt keep issuing
+# iptables commands against an nft-only kernel.
+#
+# Pair this with: eselect iptables set xtables-nft-multi
+# Without it the iptables symlink stays on xtables-legacy-multi and docker
+# dies at startup with "Module ip_tables not found".
+net-firewall/iptables nftables

@@ -32,7 +32,7 @@ Verify: memtest pass; later `dmesg | grep -i 'AMD-Vi'`.
 ### 2. Partition + filesystems
 
 pc: NVMe with a vfat ESP at /boot/efi and an xfs root
-(`profiles/pc/fstab`). fstab by UUID;
+(`profiles/desktop/fstab`). fstab by UUID;
 the kernel cmdline needs PARTUUID instead, there being no initramfs.
 
 Verify: `blkid` lists everything, note the UUIDs.
@@ -42,7 +42,7 @@ Verify: `blkid` lists everything, note the UUIDs.
 Latest **amd64-openrc** stage3 plus its `.sha256`:
 
 ```
-mount /dev/nvme0n1p2 /mnt/gentoo
+mount /dev/<rootpart> /mnt/gentoo    # check lsblk; nvme names are not stable across boots
 cd /mnt/gentoo
 wget <stage3-amd64-openrc-*.tar.xz + .sha256>
 sha256sum -c stage3-*.sha256
@@ -84,7 +84,7 @@ Verify: `id <name>`, `passwd -S root` shows `P`.
 Copy this repo into the chroot, then from this directory:
 
 ```
-./provision.sh --profile pc --hostname neverland
+./provision.sh --profile desktop --hostname neverland
 ```
 
 Runs `scripts/10-portage.sh` through `70-ollama.sh` in order (the kernel
@@ -110,7 +110,7 @@ Verify: each script logs completion; `emerge -pvuDN @world` is calm.
 ### 6. Kernel
 
 Already done by `15-kernel.sh` during step 5. To rebuild by hand:
-`sudo profiles/pc/kernel/build.sh` — it regenerates the config from
+`sudo profiles/desktop/kernel/build.sh` — it regenerates the config from
 `config-fragment`, asserts the must-be-builtin symbols, and installs.
 KERNEL_REBUILD=1 forces it when sources are already built.
 
@@ -134,7 +134,7 @@ rEFInd autodetects the kernel and reads its options from there:
 ```
 
 PARTUUID, not UUID — nothing resolves filesystem UUIDs without an
-initramfs. Checked-in copy: `profiles/pc/refind_linux.conf`.
+initramfs. Checked-in copy: `profiles/desktop/refind_linux.conf`.
 
 Verify: `efibootmgr -v` lists rEFInd, then reboot into it.
 

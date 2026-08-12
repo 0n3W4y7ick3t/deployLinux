@@ -112,7 +112,7 @@ fi
 
 # ---- handoff ----
 yadm_class=x13
-[ "$is_pc" -eq 1 ] && yadm_class=pc
+[ "$is_pc" -eq 1 ] && yadm_class=desktop
 log "done. AUR packages and dotfiles are piloted as your user:"
 cat <<EOF
   yay -S --needed - < $script_dir/pkgs-aur.txt   # skip if no yay

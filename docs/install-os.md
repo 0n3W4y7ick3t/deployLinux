@@ -14,16 +14,23 @@ or [bootstrap-arch.md](bootstrap-arch.md).
 Boot any live ISO with network (the official minimal ISO works, so does
 an Arch ISO). Then, as root:
 
-1. Find your disk: `lsblk`. Below it is `/dev/nvme0n1`.
-2. Partition: `cfdisk /dev/nvme0n1` — GPT; make three partitions:
+1. Find your disk: `lsblk -o NAME,SIZE,FSTYPE,LABEL,UUID`.
+   **Warning — do not paste device names from docs.** NVMe enumeration
+   swaps between boots and between machines: on neverland, what these
+   steps once called `/dev/nvme0n1p1`/`p3` is today the live ESP and
+   Windows C:. Identify the target by size/label/UUID first; below,
+   `<disk>` is the blank target and `<p1>..<p3>` its new partitions.
+2. Partition: `cfdisk /dev/<disk>` — GPT; make three partitions:
    1G type "EFI System", the rest for root, optionally a data partition.
-3. Make filesystems:
-   `mkfs.vfat -F32 /dev/nvme0n1p1 && mkfs.ext4 /dev/nvme0n1p2 && mkfs.xfs /dev/nvme0n1p3`
-4. Mount root: `mkdir -p /mnt/gentoo && mount /dev/nvme0n1p2 /mnt/gentoo`
+3. Make filesystems (triple-check each name against `lsblk` — mkfs on a
+   wrong letter is unrecoverable):
+   `mkfs.vfat -F32 /dev/<p1> && mkfs.xfs /dev/<p2>` (data partition if
+   any: `mkfs.xfs /dev/<p3>`)
+4. Mount root: `mkdir -p /mnt/gentoo && mount /dev/<p2> /mnt/gentoo`
 5. Download the latest **amd64 openrc** stage3 from
    <https://www.gentoo.org/downloads/> into `/mnt/gentoo`.
 6. Unpack it: `cd /mnt/gentoo && tar xpvf stage3-*.tar.xz --xattrs-include='*.*' --numeric-owner`
-7. Mount the ESP: `mkdir -p boot/efi && mount /dev/nvme0n1p1 boot/efi`
+7. Mount the ESP: `mkdir -p boot/efi && mount /dev/<p1> boot/efi`
 8. Chroot with this repo's helper: `sh ch_gentoo.sh /mnt/gentoo`
    (get it with `git clone https://github.com/0n3W4y7ick3t/deployLinux`,
    it is in `targets/gentoo/`).
@@ -37,7 +44,7 @@ an Arch ISO). Then, as root:
     `ja_JP.UTF-8 UTF-8` in `/etc/locale.gen`, then
     `locale-gen && eselect locale set en_US.utf8`
 14. Write `/etc/fstab` using UUIDs from `blkid`
-    (see `targets/gentoo/profiles/pc/fstab.example`).
+    (see `targets/gentoo/profiles/desktop/fstab.example`).
 15. Passwords and your user — do this now, not after reboot, or you get
     a machine you cannot log into:
     `passwd`, then

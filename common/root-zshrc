@@ -1,0 +1,28 @@
+# Minimal root zsh config, installed to /root/.zshrc.
+#
+# Exists mainly so zsh-newuser-install does not run its setup wizard the first
+# time root logs in. Deliberately standalone: no plugin managers, no prompt
+# frameworks and nothing sourced out of /home, so a root shell still works if a
+# user's dotfiles are broken or their home directory is not mounted.
+#
+# EDITOR/VISUAL/BROWSER come from /etc/env.d/99local via /etc/profile.env,
+# which /etc/zsh/zprofile sources -- do not duplicate them here.
+
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt HIST_IGNORE_DUPS HIST_IGNORE_SPACE SHARE_HISTORY
+setopt INTERACTIVE_COMMENTS
+
+autoload -Uz compinit && compinit -u
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+
+# Red hostname so a root shell is never mistaken for a user shell.
+autoload -Uz colors && colors
+PROMPT='%B%F{red}%n@%m%f%b %F{blue}%~%f # '
+
+alias ls='ls --color=auto'
+alias grep='grep --color=auto'
+alias vi='nvim'
+alias vim='nvim'

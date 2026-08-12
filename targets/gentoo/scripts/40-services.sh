@@ -35,6 +35,8 @@ rc_add dbus default
 rc_add dhcpcd default
 rc_add bluetooth default
 rc_add docker default
+# init script is `tailscale`, not `tailscaled`
+rc_add tailscale default
 if [ "${WANT_VIRT:-0}" = 1 ]; then
     rc_add libvirtd default
 fi
@@ -50,9 +52,35 @@ rc_add keyd default
 rc-service keyd status >/dev/null 2>&1 || rc-service keyd start 2>/dev/null || log "keyd not started (chroot?), starts on boot"
 log "installed /etc/keyd/default.conf"
 
+# backslashes are pre-doubled in common/issue so agetty prints them
+cp -f "$script_dir/../../../common/issue" /etc/issue
+log "installed /etc/issue"
+
 # fcitx5 needs XMODIFIERS, but rice's shell/profile already exports it and
 # Hyprland inherits that (it is exec'd from the login shell on tty1), so
 # setting it here too would just be a second place to keep in sync.
+
+# Default editor/browser for every account including root. env.d, not a shell
+# rc: env-update writes /etc/profile.env, which /etc/profile and
+# /etc/zsh/zprofile both source, so it applies whatever the login shell is.
+mkdir -p /etc/env.d
+cp -f "$script_dir/../../../common/env.d/99local" /etc/env.d/99local
+env-update >/dev/null 2>&1 || log "env-update failed (chroot?), runs on next boot"
+log "installed /etc/env.d/99local (EDITOR/VISUAL=nvim, BROWSER=google-chrome-stable)"
+
+# root logs in with zsh like the user does. Ship a minimal rc with it so the
+# zsh-newuser-install wizard does not ambush the first root login.
+if command -v zsh >/dev/null 2>&1; then
+    cp -f "$script_dir/../../../common/root-zshrc" /root/.zshrc
+    root_shell=$(getent passwd root | cut -d: -f7)
+    if [ "$root_shell" = /bin/zsh ]; then
+        log "root shell already zsh"
+    else
+        chsh -s /bin/zsh root && log "root shell -> /bin/zsh (was $root_shell)"
+    fi
+else
+    log "zsh not installed, leaving root shell alone"
+fi
 
 # zram swap at ~1/3 of RAM; no machine in the fleet has a swap partition
 zram_mb=$(awk '/^MemTotal:/ { printf "%d", $2 / 1024 / 3 }' /proc/meminfo)
@@ -95,5 +123,20 @@ fstrim -a
 EOF
 chmod +x /etc/cron.weekly/fstrim
 log "wrote /etc/cron.weekly/fstrim"
+
+# NTFS policy: ntfs-3g (FUSE) only. The in-kernel ntfs3 driver rw-mounted
+# Windows C: and left its $LogFile unreplayable -> UNMOUNTABLE_BOOT_VOLUME
+# 0xED (2026-08). The pc kernel no longer builds the module; this ban covers
+# any machine or kernel that still ships it.
+mkdir -p /etc/modprobe.d
+cat > /etc/modprobe.d/ntfs3.conf <<'EOF'
+# The in-kernel ntfs3 driver is banned: its rw mounts left Windows C:'s
+# $LogFile unreplayable -> UNMOUNTABLE_BOOT_VOLUME 0xED (2026-08).
+# ntfs-3g (FUSE) handles all NTFS; install/bin/false defeats even an
+# explicit `mount -t ntfs3` or a udisks automount.
+blacklist ntfs3
+install ntfs3 /bin/false
+EOF
+log "wrote /etc/modprobe.d/ntfs3.conf (in-kernel ntfs3 banned)"
 
 log "40-services done"

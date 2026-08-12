@@ -59,6 +59,15 @@ done
 # select-only, so it silently stays unset if whatever pulls it in goes away
 grep -qE '^CONFIG_DRM_TTM_HELPER=' .config ||
     die "CONFIG_DRM_TTM_HELPER unset: nvidia-drivers will refuse to build"
+# NTFS is ntfs-3g/FUSE-only after ntfs3 blanked Windows C:'s $LogFile
+# (0xED, 2026-08): FUSE must stay builtin, ntfs3 must stay gone.
+grep -qx 'CONFIG_FUSE_FS=y' .config ||
+    die "CONFIG_FUSE_FS is not builtin: every ntfs-3g mount would fail"
+! grep -qE '^CONFIG_NTFS3_FS=[ym]' .config ||
+    die "CONFIG_NTFS3_FS is set: banned after the 0xED incident"
+for sym in CONFIG_LOGO CONFIG_LOGO_LINUX_CLUT224 CONFIG_FRAMEBUFFER_CONSOLE; do
+    grep -qx "$sym=y" .config || die "$sym unset: no Tux at boot"
+done
 log "config checks passed"
 
 make "-j$jobs"

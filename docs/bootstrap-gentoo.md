@@ -26,7 +26,7 @@ Clone the repo and provision with your machine's profile:
 ```
 git clone https://github.com/0n3W4y7ick3t/deployLinux
 cd deployLinux/targets/gentoo
-./provision.sh --profile pc --hostname neverland
+./provision.sh --profile desktop --hostname neverland
 ```
 
 `provision.sh` warns if the detected hardware does not match the profile,
@@ -55,14 +55,14 @@ dracut — it carries ext4/xfs as modules. Each profile's
 `root=PARTUUID=<gpt-partuuid> rw nvidia_drm.modeset=1 nvidia_drm.fbdev=1 amd_iommu=on iommu=pt amd_pstate=active`
 
 PARTUUID rather than UUID: no initramfs means no userspace to resolve a
-filesystem UUID. `profiles/pc/refind_linux.conf` is the checked-in copy.
+filesystem UUID. `profiles/desktop/refind_linux.conf` is the checked-in copy.
 
 `provision.sh` builds it for you via `15-kernel.sh`, before the world
 merge: `nvidia-drivers[modules]` refuses to build without
 `/usr/src/linux/Module.symvers`. To rebuild by hand later:
 
 ```
-sudo profiles/pc/kernel/build.sh
+sudo profiles/desktop/kernel/build.sh
 ```
 
 **Tailscale name** follows /etc/conf.d/hostname, so the node registers as
@@ -74,7 +74,7 @@ sudo profiles/pc/kernel/build.sh
 ```
 emerge app-admin/yadm    # already in the world list
 yadm clone https://github.com/0n3W4y7ick3t/rice
-yadm config local.class pc      # or: x13 / wsl / server (class is per-machine, not per-distro)
+yadm config local.class desktop      # or: x13 / wsl / server (class is per-machine, not per-distro)
 yadm alt
 yadm bootstrap
 ```

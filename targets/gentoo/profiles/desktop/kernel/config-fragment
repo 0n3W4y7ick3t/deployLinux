@@ -20,6 +20,20 @@ CONFIG_EXTRA_FIRMWARE_DIR="/lib/firmware"
 # Root fs and its disk must be builtin, never modules: see filesystems
 # below (XFS_FS/EXT4_FS=y) and BLK_DEV_NVME=y.
 
+# ---- compressed firmware ----
+# sys-kernel/linux-firmware installs almost everything zstd-compressed
+# (/lib/firmware/**/*.bin.zst). Without these the kernel only looks for the
+# uncompressed name, every runtime firmware request fails with -2, and the
+# driver dies with no hint that the file is sitting right there. This cost a
+# full day on the first install: it took out the amdgpu iGPU ("Fatal error
+# during GPU init"), the RTW89 wifi and the RTL Bluetooth adapter all at once,
+# and each looked like an unrelated driver bug.
+# Note EXTRA_FIRMWARE above is unaffected — amd-ucode/ is one of the few dirs
+# Gentoo leaves uncompressed, and it is linked in at build time regardless.
+CONFIG_FW_LOADER=y
+CONFIG_FW_LOADER_COMPRESS=y
+CONFIG_FW_LOADER_COMPRESS_ZSTD=y
+
 # ---- platform ----
 CONFIG_X86_AMD_PSTATE=y
 CONFIG_PREEMPT_DYNAMIC=y
@@ -50,7 +64,11 @@ CONFIG_MQ_IOSCHED_DEADLINE=y
 CONFIG_EXT4_FS=y
 CONFIG_XFS_FS=y
 CONFIG_VFAT_FS=y
-CONFIG_NTFS3_FS=m
+# ntfs3 is banned: its rw mounts blanked Windows C:'s $LogFile and cost an
+# UNMOUNTABLE_BOOT_VOLUME 0xED repair (2026-08). NTFS is ntfs-3g/FUSE-only
+# (fstab + modprobe.d agree); the explicit not-set line keeps it that way
+# even if a defconfig ever flips the default. build.sh asserts it.
+# CONFIG_NTFS3_FS is not set
 CONFIG_EXFAT_FS=m
 CONFIG_BTRFS_FS=m
 CONFIG_FUSE_FS=y
@@ -83,8 +101,11 @@ CONFIG_DRM_FBDEV_EMULATION=y
 # which nvidia-drivers requires on 6.11+ whenever FBDEV_EMULATION is set
 # and which cannot be set directly — so this replaces the DRM_QXL stub
 # that used to be here purely for that.
-# Consequence: two DRM cards. If hyprland picks the wrong one, pin it with
-# env = AQ_DRM_DEVICES,/dev/dri/card<n> in the rice hyprland.conf.
+# Consequence: two DRM cards. rice's shell/profile pins hyprland to the 5080
+# by resolving the 5080's /dev/dri/by-path node to the real cardN at login
+# and exporting AQ_DRM_DEVICES. Do NOT put the by-path name in that variable
+# directly (it is a colon-separated list and the name contains colons), and
+# do not hardcode cardN (not stable across boots).
 CONFIG_DRM_AMDGPU=m
 CONFIG_DRM_AMD_DC=y
 CONFIG_DRM_SIMPLEDRM=y
@@ -155,19 +176,29 @@ CONFIG_NETFILTER_XT_MATCH_COMMENT=m
 CONFIG_NETFILTER_XT_MATCH_MULTIPORT=m
 CONFIG_NETFILTER_XT_MATCH_MARK=m
 CONFIG_NETFILTER_XT_MATCH_STATISTIC=m
-CONFIG_IP_NF_IPTABLES=m
-CONFIG_IP_NF_FILTER=m
-CONFIG_IP_NF_NAT=m
-CONFIG_IP_NF_MANGLE=m
-CONFIG_IP_NF_RAW=m
-CONFIG_IP_NF_TARGET_MASQUERADE=m
-CONFIG_IP_NF_TARGET_REDIRECT=m
-CONFIG_IP6_NF_IPTABLES=m
-CONFIG_IP6_NF_FILTER=m
-CONFIG_IP6_NF_NAT=m
-CONFIG_IP6_NF_MANGLE=m
-CONFIG_IP6_NF_RAW=m
-CONFIG_IP6_NF_TARGET_MASQUERADE=m
+# This box is nftables-only: net-firewall/iptables[nftables] provides
+# xtables-nft-multi, and `eselect iptables set xtables-nft-multi` points the
+# iptables/ip6tables commands at it, so docker and libvirt still speak
+# "iptables" while the kernel only ever sees nf_tables.
+#
+# The CONFIG_IP_NF_* / CONFIG_IP6_NF_* legacy tables that used to be listed
+# here are gone deliberately. They are NOT sufficient on their own: since
+# 6.15 the legacy xtables core sits behind CONFIG_NETFILTER_XTABLES_LEGACY,
+# and without it ip_tables.ko is never built no matter how many IP_NF_*
+# symbols are set. That is exactly how docker failed on the first install —
+# "modprobe: FATAL: Module ip_tables not found" while .config claimed
+# CONFIG_IP_NF_IPTABLES=m. If legacy tables are ever genuinely needed, add
+# CONFIG_NETFILTER_XTABLES_LEGACY=y *and* the IP_NF_* symbols back together.
+CONFIG_NF_TABLES_INET=y
+CONFIG_NF_TABLES_IPV4=y
+CONFIG_NF_TABLES_IPV6=y
+CONFIG_NF_TABLES_BRIDGE=m
+CONFIG_NFT_MASQ=m
+CONFIG_NFT_CT=m
+CONFIG_NF_NAT_MASQUERADE=y
+# BRIDGE_NETFILTER (docker's bridge networking) is gated behind
+# NETFILTER_ADVANCED; without it olddefconfig drops the line silently.
+CONFIG_NETFILTER_ADVANCED=y
 CONFIG_BRIDGE_NETFILTER=m
 CONFIG_IP_VS=m
 CONFIG_IP_VS_RR=m
@@ -194,6 +225,10 @@ CONFIG_USB_UAS=y
 CONFIG_USB_XHCI_HCD=y
 CONFIG_HID_GENERIC=y
 CONFIG_USB_HID=y
+# keyd creates a virtual keyboard to remap caps<->esc; without uinput there is
+# no /dev/uinput and the service just reports "crashed" at boot.
+CONFIG_INPUT_EVDEV=y
+CONFIG_INPUT_UINPUT=y
 CONFIG_TYPEC=m
 CONFIG_TYPEC_UCSI=m
 CONFIG_UCSI_ACPI=m
@@ -201,6 +236,10 @@ CONFIG_SND_HDA_INTEL=m
 CONFIG_SND_HDA_CODEC_REALTEK=m
 CONFIG_SND_HDA_CODEC_HDMI=m
 CONFIG_SND_USB_AUDIO=m
+
+# Tux at boot, one penguin per CPU
+CONFIG_LOGO=y
+CONFIG_LOGO_LINUX_CLUT224=y
 
 # ---- misc ----
 CONFIG_WIREGUARD=m

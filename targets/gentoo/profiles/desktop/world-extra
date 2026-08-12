@@ -4,6 +4,9 @@
 # file) — no dist-kernel here, it ships ext4/xfs as modules and would need
 # an initramfs. See kernel/README.md.
 
+# hyprland overview plugin; re-emerge after every hyprland bump
+hyprland-plugin/hyprexpo-sandwichfarm
+
 # gpu
 x11-drivers/nvidia-drivers
 media-libs/nvidia-vaapi-driver

@@ -34,7 +34,9 @@ as a yay command to run as your user, never installed as root).
 ## Notes
 
 - Input: keyd swaps Caps Lock and Escape system-wide
-  (`common/keyd-default.conf`, enabled as a service).
+  (`common/keyd-default.conf`, enabled as a service). A board that swaps the
+  pair in its own firmware needs excluding there by vendor:product id, or
+  the two swaps cancel out.
 - Kernel: stock `linux` + `linux-firmware` cover everything the Gentoo
   kernel checklist enables; `linux-lts` is a commented fallback in
   `pkgs-core.txt`.
@@ -42,8 +44,8 @@ as a yay command to run as your user, never installed as root).
   and wifi on both boxes. iwd is installed on laptops and can replace or
   back NetworkManager if preferred.
 - Hostname convention: `localhost` everywhere, machines are told apart
-  by yadm class (`pc` / `x13`), never by hostname.
+  by yadm class (`desktop` / `x13`), never by hostname.
 - Kali VM: `../gentoo/scripts/51-kali-vm.sh` works on any libvirt host
-  with sh + virt-install (export `GENTOO_PROFILE=pc` to satisfy its
+  with sh + virt-install (export `GENTOO_PROFILE=desktop` to satisfy its
   profile gate), reuse it as-is.
 - Binhost does not apply here (Gentoo-only concept).
