@@ -185,6 +185,9 @@ fi
 systemctl enable NetworkManager.service
 systemctl enable --now keyd.service 2>/dev/null || systemctl enable keyd.service
 systemctl enable fstrim.timer # weekly TRIM; Gentoo uses a cron.weekly hook
+# tailscale is fleet-wide, same as `rc_add tailscale default` on Gentoo.
+# `tailscale up` stays manual: it needs a browser login the first time.
+systemctl enable tailscaled.service
 [ "$bt" = yes ] && systemctl enable bluetooth.service
 if [ "$is_laptop" -eq 1 ]; then
     # power-profiles-daemon and TLP own the same knobs and Conflicts= each
@@ -206,7 +209,7 @@ EOF
     log "wifi: NetworkManager + iwd backend"
 fi
 if [ "$is_desktop" -eq 1 ]; then
-    systemctl enable docker.service libvirtd.service tailscaled.service
+    systemctl enable docker.service libvirtd.service
     log "after first start, run: virsh net-autostart default"
 fi
 

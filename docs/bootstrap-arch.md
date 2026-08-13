@@ -9,7 +9,7 @@ runs Gentoo. Everything here is one script with hardware detection.
 ```
 git clone https://github.com/0n3W4y7ick3t/deployLinux
 cd deployLinux/targets/arch
-sudo ./bootstrap.sh --hostname x13      # add --desktop to force desktop extras
+sudo ./bootstrap.sh --hostname archtop  # add --desktop to force desktop extras
 ```
 
 `--hostname` is optional and free-form: machines are told apart by yadm

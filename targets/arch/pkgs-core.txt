@@ -31,3 +31,6 @@ usbutils
 networkmanager
 bluez
 bluez-utils
+# fleet-wide, like net-vpn/tailscale in the gentoo world file -- a laptop
+# wants the mesh more than the desktop does
+tailscale

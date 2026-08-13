@@ -9,7 +9,7 @@ machine-specific variant.
 (archinstall or manual). Then, as root:
 
 ```
-./bootstrap.sh [--hostname x13] [--desktop]
+./bootstrap.sh [--hostname archtop] [--desktop]
 ```
 
 `--pc` is still accepted as an alias for `--desktop` (the class was
@@ -68,8 +68,9 @@ mechanism differs:
   backend (`/etc/NetworkManager/conf.d/wifi_backend.conf`) and is enabled
   as a service — leaving it to D-Bus activation works right up until the
   boot where it does not.
-- Hostname convention: free-form (`x13`, `neverland`). Machines are told
-  apart by yadm class (`desktop` / `x13`), never by hostname.
+- Hostname convention: free-form (`archtop`, `neverland`). Machines are
+  told apart by yadm class (`desktop` / `x13`), never by hostname — the
+  laptop is hostname `archtop`, class `x13`.
 - Kali VM: `../gentoo/scripts/51-kali-vm.sh` works on any libvirt host
   with sh + virt-install (export `GENTOO_PROFILE=desktop` to satisfy its
   profile gate), reuse it as-is.

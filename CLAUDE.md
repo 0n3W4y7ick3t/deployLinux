@@ -12,10 +12,14 @@ with yadm. Keep the split: if it lives in `$HOME`, it belongs in rice.
 Two machines. Both run Hyprland on Wayland and share the rice user layer;
 **everything below Hyprland differs**, and that is deliberate:
 
-| | yadm class | distro / init | hardware | bootloader |
+| hostname | yadm class | distro / init | hardware | bootloader |
 | :--- | :--- | :--- | :--- | :--- |
 | **neverland** | `desktop` | Gentoo + OpenRC | Ryzen 9800X3D (Zen5), RTX 5080, TUF B850-PLUS | rEFInd |
-| **x13** | `x13` | Arch + systemd | ThinkPad X13 Gen 4, AMD, integrated Radeon | systemd-boot + UKI |
+| **archtop** | `x13` | Arch + systemd | ThinkPad X13 Gen 4, AMD, integrated Radeon | systemd-boot + UKI |
+
+The laptop's hostname is `archtop` and its class is `x13` — a reminder that
+the two are unrelated. Everything in this repo keys off the class; the
+hostname is only what tailscale and the shell prompt show.
 
 **The ThinkPad X13 runs Arch** (`targets/arch`), settled 2026-08-11 after
 trying the alternatives. It was a Gentoo binhost client; both the binhost
@@ -73,7 +77,7 @@ one, check the other.**
   a flag in `deps` can be deleted the day its consumer goes, and knowing
   *which* consumer is the whole point.
 - Machines are told apart by **yadm class**, not hostname. Hostnames are
-  free (`neverland`, `x13`); `yadm config local.class desktop` (or `x13`)
+  free (`neverland`, `archtop`); `yadm config local.class desktop` (or `x13`)
   is what selects files. The class was renamed `pc` → `desktop` on
   2026-08-12; `--pc` survives only as an alias in the Arch bootstrap.
 - Commits: no `Co-Authored-By` trailer. Don't push without asking.
@@ -403,14 +407,16 @@ mozc restored in `.config/fcitx5/profile` — note the ordering trap there,
 fcitx5 saves its in-memory config on SIGTERM, so `yadm checkout` has to
 come *after* the kill, not before.
 
+Verified across the 2026-08-13 02:35 reboot, which is what makes the above
+more than theory: `boot-efi.mount` now reports `SourcePath=/etc/fstab`
+rather than gpt-auto, `BootOrder` is `0002,0003,0001` (systemd-boot,
+its fallback, Windows — no rEFInd), Windows booted and shut down cleanly
+in between, `hiberfil.sys` is gone from the volume after `powercfg /h off`,
+wifi came up on the iwd backend, tlp and tailscaled are active, and
+`hyprctl configerrors` is empty. tailscale joined the tailnet as `archtop`.
+
 Still open:
 
-1. In Windows: `powercfg /h off`, then `fsutil dirty query C:`. The rw
-   exception on `/mnt/DATA` is only acceptable once this is done.
-2. Reboot — `linux-firmware` was upgraded, and it is the real test of the
-   fstab ESP and the single bootloader. Re-check: one loader in the
-   firmware menu, `findmnt /boot/efi`, wifi up, `hyprctl configerrors`
-   empty.
-3. Change the throwaway install password here too.
-4. Leftovers on the ESP from the pre-Arch era: `EFI/HackBGRT`, `EFI/tools`
+1. Change the throwaway install password here too.
+2. Leftovers on the ESP from the pre-Arch era: `EFI/HackBGRT`, `EFI/tools`
    (Mar 2024). Harmless, delete when curious.

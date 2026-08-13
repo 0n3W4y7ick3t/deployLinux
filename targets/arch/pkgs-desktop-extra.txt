@@ -13,5 +13,4 @@ virt-manager
 dnsmasq
 nmap
 wireshark-qt
-tailscale
 7zip
