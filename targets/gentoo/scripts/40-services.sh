@@ -124,6 +124,18 @@ EOF
 chmod +x /etc/cron.weekly/fstrim
 log "wrote /etc/cron.weekly/fstrim"
 
+# user crontabs. cronie DOES ship /var/spool/cron/crontabs, but its parent
+# was left drwxr-x--- root:cron here, and /usr/bin/crontab is setgid
+# **crontab** (not cron) — so it cannot traverse into its own spool. Every
+# crontab call then dies with "'/var/spool/cron/crontabs' is not a directory",
+# including `crontab -l`, which points at the wrong thing entirely: the
+# directory exists, the path to it is unreadable. Note the two groups really
+# are different (cron=16 owns the daemon's dirs, crontab=460 the setgid bit).
+chown root:root /var/spool/cron
+chmod 755 /var/spool/cron
+install -d -o root -g crontab -m 1730 /var/spool/cron/crontabs
+log "ensured /var/spool/cron/crontabs (root:crontab 1730)"
+
 # NTFS policy: ntfs-3g (FUSE) only. The in-kernel ntfs3 driver rw-mounted
 # Windows C: and left its $LogFile unreplayable -> UNMOUNTABLE_BOOT_VOLUME
 # 0xED (2026-08). The pc kernel no longer builds the module; this ban covers

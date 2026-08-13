@@ -28,7 +28,7 @@ Then, when a package refuses to resolve, **fix it in this repo, not in
 with a comment naming the consumer, then:
 
 ```sh
-cd /deploy/deployLinux && git pull
+cd ~/akira/deployLinux && git pull
 sudo GENTOO_PROFILE=desktop sh targets/gentoo/scripts/10-portage.sh
 ```
 
@@ -43,7 +43,7 @@ stays reviewable and symbols renamed upstream do not silently persist.
 
 ```sh
 sudo emerge -u sys-kernel/gentoo-sources
-sudo /deploy/deployLinux/targets/gentoo/profiles/desktop/kernel/build.sh
+sudo ~/akira/deployLinux/targets/gentoo/profiles/desktop/kernel/build.sh
 ```
 
 It selects the newest source tree, merges the fragment, **asserts** the
@@ -128,7 +128,7 @@ version of this very recipe pointed at what is today the NTFS DATA disk:
 ```sh
 mount LABEL=gentoo /mnt/gentoo
 mount UUID=6641-7CF6 /mnt/gentoo/boot/efi        # the shared ESP
-sh /mnt/gentoo/deploy/deployLinux/targets/gentoo/ch_gentoo.sh /mnt/gentoo
+sh /mnt/gentoo/home/leon/akira/deployLinux/targets/gentoo/ch_gentoo.sh /mnt/gentoo
 source /etc/profile
 ```
 

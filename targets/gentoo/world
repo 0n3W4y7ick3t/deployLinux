@@ -60,16 +60,32 @@ app-arch/zip
 # dev
 dev-vcs/git
 dev-util/github-cli
-dev-lang/go
-dev-go/gopls
-dev-go/go-tools
-dev-lang/python
-dev-python/pip
+# No language toolchain is requested here any more (2026-08-13). A project
+# needs the version *it* was written against, and portage can only ever
+# offer one — whatever is newest. That mismatch is silent until something
+# fails to build or behaves differently than it does in CI, so the pin
+# belongs with the project, in the user layer:
+#   go, node, python  -> mise (~/.local/bin/mise, ~/.config/mise/config.toml)
+#   rust              -> rustup (~/.local/share/cargo/bin; cargo reads a
+#                        project's rust-toolchain.toml natively, and it is
+#                        the only one that does components and cross
+#                        targets). mise's rust backend is a symlink to it.
+#   gopls, goimports  -> mise's go: backend, so they follow the pinned go
+# So gone from this list: dev-lang/go, dev-go/gopls, dev-go/go-tools,
+# dev-lang/python, dev-python/pip, dev-lang/rust-bin, llvm-core/clang.
+#
+# All of them stay *installed* as build dependencies, which is the point —
+# that copy builds portage packages and is never the dev toolchain:
+#   go     <- docker, containerd, runc, gh, kubectl, k9scli, minikube,
+#             tailscale, fzf, lf, cliphist, yq-go (~20 packages)
+#   python <- portage itself, yadm, at-spi2-core, brotli, gcr, libsecret, ...
+#   clang  <- python, hyprland, hyprlang, hyprwire, xdg-desktop-portal-hyprland,
+#             qttools, eigen
+# C++ is deliberately NOT version-managed: sys-devel/gcc is @system, the
+# compiler that builds the whole OS.
 dev-python/pynvim
-dev-lang/rust-bin
 dev-debug/gdb
 dev-debug/valgrind
-llvm-core/clang
 
 # net / vpn
 net-vpn/tailscale

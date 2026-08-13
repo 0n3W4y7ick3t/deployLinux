@@ -176,6 +176,17 @@ CONFIG_NETFILTER_XT_MATCH_COMMENT=m
 CONFIG_NETFILTER_XT_MATCH_MULTIPORT=m
 CONFIG_NETFILTER_XT_MATCH_MARK=m
 CONFIG_NETFILTER_XT_MATCH_STATISTIC=m
+# xt_nat: the DNAT/SNAT *targets*. NF_NAT is only the engine and NFT_NAT only
+# the native nft expression — neither gives nft_compat something to bind
+# `-j DNAT` to. Without this every published container port fails at start with
+#   iptables -t nat -A DOCKER ... -j DNAT --to-destination 172.17.0.2:3306
+#   Warning: Extension DNAT revision 0 not supported, missing kernel module?
+# and `docker start` then leaves the container running with NO ports and NO
+# network at all, which reads like a broken image rather than a kernel gap.
+# MASQUERADE below is the same story for the hairpin/egress direction.
+CONFIG_NETFILTER_XT_NAT=m
+CONFIG_NETFILTER_XT_TARGET_MASQUERADE=m
+CONFIG_NETFILTER_XT_TARGET_REDIRECT=m
 # This box is nftables-only: net-firewall/iptables[nftables] provides
 # xtables-nft-multi, and `eselect iptables set xtables-nft-multi` points the
 # iptables/ip6tables commands at it, so docker and libvirt still speak

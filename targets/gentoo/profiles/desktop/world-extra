@@ -27,3 +27,14 @@ app-emulation/virt-viewer
 net-analyzer/nmap
 net-analyzer/wireshark
 
+# database clients (2026-08-13). mariadb is the CLI client only: USE
+# -server, because nothing on this box runs a database — they live in
+# containers and on remote hosts. dbeaver-bin is the GUI for the same ones.
+# shellcheck-bin is wanted before every commit here, per CONVENTIONS.
+#
+# Language toolchains are deliberately absent from this file too; the base
+# world file explains where they live instead.
+dev-util/shellcheck-bin
+dev-db/mariadb
+dev-db/dbeaver-bin
+

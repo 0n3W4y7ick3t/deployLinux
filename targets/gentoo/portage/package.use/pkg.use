@@ -11,6 +11,9 @@ media-video/ffmpeg v4l x264 mp3 opus flac
 media-video/pipewire sound-server pipewire-alsa extra ffmpeg dbus bluetooth gstreamer modemmanager
 sys-apps/dbus X
 sys-devel/gcc nls
+# client only: the databases live in containers and on remote hosts, never
+# on this box, so the server half is dead weight (and a datadir to babysit).
+dev-db/mariadb -server
 # no initramfs: the kernel builds its root fs drivers in. A dist-kernel
 # here needs dracut back on.
 sys-kernel/installkernel -dracut

@@ -183,6 +183,24 @@ machines on one loader; do not add a bootloader step to
 proprietary module. `dist-kernel` USE is off — `@module-rebuild` via the
 postinst hook does the rebuilds.
 
+**Docker cannot publish ports without `CONFIG_NETFILTER_XT_NAT`.** `NF_NAT`
+is only the engine and `NFT_NAT` only the native nft expression; neither
+gives `nft_compat` anything to bind `-j DNAT` to. Every `docker run -p`
+then dies with "Extension DNAT revision 0 not supported, missing kernel
+module?" — and `docker start` afterwards leaves the container **running
+with no ports and no network at all**, which reads like a broken image
+rather than a kernel gap. `build.sh` asserts it next to the libvirt
+symbols. The module loads into a running kernel of the same version, so
+the fix does not need a reboot.
+
+**cronie ships `/var/spool/cron/crontabs`, but nothing fixes its parent.**
+`/var/spool/cron` was left `drwxr-x--- root:cron` while `/usr/bin/crontab`
+is setgid **crontab** (gid 460 — *not* cron, gid 16), so crontab cannot
+traverse into its own spool. Every call then fails with
+"'/var/spool/cron/crontabs' is not a directory", `crontab -l` included,
+which points at the wrong thing entirely: the directory exists, the path
+to it is unreadable. `40-services.sh` fixes both the parent and the mode.
+
 **First `emerge -uDN @world` on a fresh stage3 hits a dependency cycle**
 (`pillow[truetype]` → `harfbuzz` → `glib` → `docutils` → `pillow`).
 `20-world.sh` breaks it with a one-shot `pillow[-truetype]`.
@@ -275,14 +293,22 @@ old recipe here once pointed at what is today the NTFS DATA disk):
 ```sh
 mount LABEL=gentoo /mnt/gentoo
 mount UUID=6641-7CF6 /mnt/gentoo/boot/efi
-sh /mnt/gentoo/deploy/deployLinux/targets/gentoo/ch_gentoo.sh /mnt/gentoo
+sh /mnt/gentoo/home/leon/akira/deployLinux/targets/gentoo/ch_gentoo.sh /mnt/gentoo
 source /etc/profile
 ```
 
-The repo is checked out inside the target at **`/deploy/deployLinux`**.
-Re-run `./provision.sh --profile desktop --hostname neverland` — every script
-is idempotent, and `15-kernel.sh` skips the rebuild unless
-`KERNEL_REBUILD=1`.
+The only checkout inside the target is the **normal user clone**,
+`~/akira/deployLinux` (`/mnt/gentoo/home/leon/akira/deployLinux` from the
+live ISO). There used to be a second one at `/deploy/deployLinux`; it was
+deleted on 2026-08-13 because two checkouts of the same repo drift, and
+the one you are not looking at is always the one provision.sh reads — a
+kernel rebuild ran from the stale copy and silently produced a kernel
+without the fix that prompted it.
+
+Re-run `./provision.sh --profile desktop --hostname neverland` from that
+clone — every script is idempotent, and `15-kernel.sh` skips the rebuild
+unless `KERNEL_REBUILD=1`. If `$HOME` is unreadable for any reason, clone
+fresh: `git clone https://github.com/0n3W4y7ick3t/deployLinux`.
 
 `/boot` keeps the previous kernel as `vmlinuz-*.old`; rEFInd will offer
 it. See `docs/maintenance.md` for the full recovery matrix.
@@ -309,42 +335,27 @@ Kernel rebuilt the same day (still `7.1.8-gentoo`; previous build kept as
 A `WePE64.iso` (repack of the WePE partition for the Ventoy menu) lives
 on the Ventoy USB's `os/` folder and on `DATA/Downloads`.
 
-**Accounts still carry the throwaway install password — change them.**
+## neverland: 2026-08-13
 
-## neverland: after reboot — TODO (2026-08-12)
+The 2026-08-12 TODO list is finished — Windows boots clean and is no longer
+hibernating, the NTFS policy passed its live check (`mount -t ntfs3` fails
+with "unknown filesystem type"), yadm is adopted at `local.class desktop`,
+the rescue image is deleted, and the install passwords are changed. Only
+one optional item is left over: the WePE **partition** on the Ventoy stick
+is redundant now that the ISO is in `os/`, so it can be reclaimed into the
+exfat data partition whenever convenient.
 
-Work top to bottom; Windows first (its repair finishes on boot), Gentoo
-second. Before rebooting: both monitor cables belong on the 5080.
+The machine became a daily driver on 2026-08-13, which is what turned up
+the docker and cron bugs in the gotchas above. Two conventions came out of
+that day and both are load-bearing:
 
-1. ~~**Windows**~~ — booted clean without needing the WePE `chkdsk`.
-2. ~~**In Windows**~~ — `fsutil dirty query C:` reports **NOT dirty** and
-   `powercfg /h off` is done, so hibernation can no longer hand Linux a
-   half-shut-down volume.
-3. ~~**Gentoo**~~ — tty1 lands in Hyprland, `AQ_DRM_DEVICES` resolves to a
-   real `/dev/dri/cardN`, both panels are up, and
-   `~/.cache/hyprland/session.log` is being written.
-4. ~~**NTFS policy live-check**~~ — passed 2026-08-12: DATA mounts `fuseblk`
-   rw, LOSE `fuseblk` ro, and `mount -t ntfs3` fails with "unknown
-   filesystem type 'ntfs3'".
-5. ~~Delete the rescue image~~ — done 2026-08-12, by hand.
-   `lose-ntfs-meta.img` is gone. What `/root/rescue-20260812/` still holds
-   is 56K worth keeping: the
-   `nvme0n1-gpt-{pre,post}.bak` GPT backups and `sgdisk-p-pre.txt` from the
-   partition renumbering, plus `.orig` copies of fstab/profile/machine.conf
-   that are all in git now. Keep the GPT backups until the partition table
-   stops changing.
-6. ~~**yadm, properly**~~ — done 2026-08-12. `local.class desktop`, origin is the
-   rice remote, tree clean. `machine.conf` is now a `yadm alt` symlink and
-   the tracked fallback is `machine.conf##default`.
-7. ~~Push both repos~~ — done. `/deploy/deployLinux` still needs `git pull`.
-   Pushing needs `gh auth switch -u 0n3W4y7ick3t` first: gh defaults to the
-   `the other` account, which gets a 403 on these repos.
-8. Change both throwaway passwords. ~~tailscale~~ (up as `neverland`) and
-   ~~Pinyin~~ (fcitx5 `DefaultIM=pinyin`, Mozc alongside) are done.
-9. Optional cleanup: the WePE **partition** on the Ventoy stick is now
-   redundant (the ISO replaces it) — reclaim it into the exfat data
-   partition whenever convenient, or keep it as a belt-and-suspenders
-   boot path.
+- **Language toolchains do not come from portage.** `world` explains the
+  reasoning at the point where they used to be listed. Anything that pins
+  a version per project (mise, rustup) lives in the user layer.
+- **One checkout of this repo per machine.** See the recovery section.
+
+Pushing needs `gh auth switch -u 0n3W4y7ick3t` first — gh defaults to the
+other account it is logged into, which gets a 403 on these repos.
 
 ## State of the x13 deploy — 2026-08-13
 
