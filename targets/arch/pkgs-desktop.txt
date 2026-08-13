@@ -17,7 +17,6 @@ wtype
 dunst
 gammastep
 keyd
-kanshi
 polkit
 # polkitd alone only answers on D-Bus; without an agent every GUI privilege
 # prompt fails silently. rice exec-once's it.
