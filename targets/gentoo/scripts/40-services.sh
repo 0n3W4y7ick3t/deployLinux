@@ -100,6 +100,17 @@ net.ipv4.tcp_congestion_control = bbr
 EOF
 log "wrote /etc/sysctl.d/90-bbr.conf"
 
+# sshd, tailnet-only. Twin of the block in targets/arch/bootstrap.sh; the
+# drop-in and sysctl come from common/lib.sh so the two cannot drift. When
+# the helper finds no tailscale IP it returns 1 and sshd stays untouched.
+if install_sshd_tailnet; then
+    sysctl -p /etc/sysctl.d/91-ssh-tailnet.conf >/dev/null 2>&1 || log "sysctl not applied (chroot?), applies on boot"
+    rc_add sshd default
+    # restart, not start: picks up a changed drop-in on re-runs too
+    rc-service sshd restart >/dev/null 2>&1 || log "sshd not started (chroot?), starts on boot"
+    log "sshd enabled, tailnet only"
+fi
+
 # desktop only: pin EPP to performance (a laptop wants the default for battery)
 if [ "$chassis" = desktop ]; then
     cat > /etc/local.d/epp.start <<'EOF'

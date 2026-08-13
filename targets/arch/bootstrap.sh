@@ -188,6 +188,18 @@ systemctl enable fstrim.timer # weekly TRIM; Gentoo uses a cron.weekly hook
 # tailscale is fleet-wide, same as `rc_add tailscale default` on Gentoo.
 # `tailscale up` stays manual: it needs a browser login the first time.
 systemctl enable tailscaled.service
+# sshd, tailnet-only. Twin of the block in targets/gentoo/scripts/
+# 40-services.sh; the drop-in and sysctl come from common/lib.sh so the two
+# cannot drift. When the helper finds no tailscale IP it returns 1 and sshd
+# stays untouched (a fresh install runs this again after `tailscale up`).
+if install_sshd_tailnet; then
+    sysctl --system >/dev/null 2>&1 || log "sysctl --system failed (chroot?), applies on next boot"
+    systemctl enable sshd.service
+    # reload-or-restart also starts an inactive unit, and picks up a
+    # changed drop-in on re-runs
+    systemctl reload-or-restart sshd.service 2>/dev/null || log "sshd not started (chroot?), starts on boot"
+    log "sshd enabled, tailnet only"
+fi
 [ "$bt" = yes ] && systemctl enable bluetooth.service
 if [ "$is_laptop" -eq 1 ]; then
     # power-profiles-daemon and TLP own the same knobs and Conflicts= each
