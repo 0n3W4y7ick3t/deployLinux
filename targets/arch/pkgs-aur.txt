@@ -2,3 +2,5 @@
 # run as root); it prints the yay command to run as your user.
 nsxiv
 google-cloud-cli
+# cursor theme, macOS (+ macOS-White); Gentoo gets it from the @hyprland set
+apple_cursor

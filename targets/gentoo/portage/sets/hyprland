@@ -36,3 +36,5 @@ app-misc/cliphist
 app-misc/keyd
 gui-apps/wtype
 app-misc/brightnessctl
+# cursor theme, macOS (+ macOS-White); Arch gets it from the AUR list
+x11-themes/apple-cursor

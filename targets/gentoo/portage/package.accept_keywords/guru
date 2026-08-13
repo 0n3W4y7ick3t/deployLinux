@@ -4,6 +4,7 @@ app-misc/keyd
 app-misc/brightnessctl
 gui-apps/wtype
 gui-apps/wlr-randr
+x11-themes/apple-cursor
 # moved out of ::gentoo, now GURU-only
 app-misc/lf
 app-misc/tealdeer
