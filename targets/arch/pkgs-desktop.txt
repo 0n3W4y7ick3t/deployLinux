@@ -14,6 +14,8 @@ slurp
 swappy
 wf-recorder
 wtype
+# kernel-level input injection via uinput; udev rule: common/80-uinput.rules
+ydotool
 dunst
 gammastep
 keyd

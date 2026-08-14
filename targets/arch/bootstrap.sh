@@ -100,6 +100,19 @@ mkdir -p /etc/keyd
 cp -f "$common_dir/keyd-default.conf" /etc/keyd/default.conf
 log "installed /etc/keyd/default.conf"
 
+# uinput for ydotool (pkgs-desktop): kernel-level input injection. Unlike
+# the gentoo runbook's useradd, the arch install did not put the user in
+# `input`, so add it here (needs re-login).
+mkdir -p /etc/udev/rules.d
+cp -f "$common_dir/80-uinput.rules" /etc/udev/rules.d/80-uinput.rules
+{ udevadm control --reload && udevadm trigger /dev/uinput; } 2>/dev/null || true
+if [ -n "${SUDO_USER:-}" ]; then
+    usermod -aG input "$SUDO_USER" && log "added $SUDO_USER to input"
+else
+    log "no SUDO_USER, skipping group setup (usermod -aG input <user>)"
+fi
+log "installed /etc/udev/rules.d/80-uinput.rules"
+
 # backslashes are pre-doubled in common/issue so agetty prints them
 cp -f "$common_dir/issue" /etc/issue
 log "installed /etc/issue"

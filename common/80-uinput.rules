@@ -1,0 +1,4 @@
+# /dev/uinput is root-only by default; open it to the input group so
+# ydotool(1) can inject kernel-level input (virtual keyboard/mouse) without
+# root. The user must be in `input` -- install-time useradd covers it.
+KERNEL=="uinput", GROUP="input", MODE="0660"

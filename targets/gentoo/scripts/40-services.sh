@@ -52,6 +52,14 @@ rc_add keyd default
 rc-service keyd status >/dev/null 2>&1 || rc-service keyd start 2>/dev/null || log "keyd not started (chroot?), starts on boot"
 log "installed /etc/keyd/default.conf"
 
+# uinput for ydotool (@hyprland set): kernel-level input injection. The rule
+# opens /dev/uinput to the input group; users get input at useradd (runbook).
+mkdir -p /etc/udev/rules.d
+cp -f "$script_dir/../../../common/80-uinput.rules" /etc/udev/rules.d/80-uinput.rules
+{ udevadm control --reload && udevadm trigger /dev/uinput; } 2>/dev/null ||
+    log "udev reload skipped (chroot?), applies on boot"
+log "installed /etc/udev/rules.d/80-uinput.rules"
+
 # backslashes are pre-doubled in common/issue so agetty prints them
 cp -f "$script_dir/../../../common/issue" /etc/issue
 log "installed /etc/issue"

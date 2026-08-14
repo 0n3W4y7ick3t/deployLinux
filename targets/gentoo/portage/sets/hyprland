@@ -17,6 +17,8 @@ gui-apps/slurp
 gui-apps/swappy
 gui-apps/wf-recorder
 gui-apps/wl-clipboard
+# kernel-level input injection via uinput; udev rule: common/80-uinput.rules
+x11-misc/ydotool
 x11-misc/dunst
 x11-misc/gammastep
 sys-apps/xdg-desktop-portal
