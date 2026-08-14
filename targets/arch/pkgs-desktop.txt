@@ -17,6 +17,8 @@ wtype
 # kernel-level input injection via uinput; udev rule: common/80-uinput.rules
 ydotool
 dunst
+# notify-send lives here, not in dunst; every rice script notifies through it
+libnotify
 gammastep
 keyd
 polkit
