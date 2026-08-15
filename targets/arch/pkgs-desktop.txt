@@ -6,6 +6,8 @@ hypridle
 hyprlock
 hyprpaper
 xdg-desktop-portal-hyprland
+# FileChooser/OpenURI/Settings backend; portal-hyprland only does capture
+xdg-desktop-portal-gtk
 wmenu
 wl-clipboard
 cliphist

@@ -48,7 +48,7 @@ an Arch ISO). Then, as root:
 15. Passwords and your user — do this now, not after reboot, or you get
     a machine you cannot log into:
     `passwd`, then
-    `useradd -m -G wheel,video,audio,usb,portage,input,render -s /bin/bash <name>`
+    `useradd -m -G wheel,video,audio,pipewire,usb,portage,input,render -s /bin/bash <name>`
     and `passwd <name>`. Switch the shell to zsh once bootstrap has
     installed it.
 16. Bootloader: copy `common/refind/` from this repo onto the ESP and add

@@ -7,6 +7,10 @@ gui-apps/hypridle
 gui-apps/hyprlock
 gui-apps/hyprpaper
 gui-libs/xdg-desktop-portal-hyprland
+# polkit auth agent; without it GUI privilege prompts fail silently
+# (2026-08-15 audit: was missing on the desktop). Arch names it
+# hyprpolkitagent in pkgs-desktop.txt.
+sys-auth/hyprpolkitagent
 
 # ::gentoo
 x11-terms/kitty
@@ -22,6 +26,9 @@ x11-misc/ydotool
 x11-misc/dunst
 x11-misc/gammastep
 sys-apps/xdg-desktop-portal
+# FileChooser/OpenURI/Settings backend; portal-hyprland only does
+# screenshot/screencast/global-shortcuts
+sys-apps/xdg-desktop-portal-gtk
 x11-base/xwayland
 app-misc/jq
 media-fonts/noto-emoji

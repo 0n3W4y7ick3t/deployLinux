@@ -1,4 +1,6 @@
 # laptop-only extras (installed when a laptop chassis is detected)
 tlp
 iwd
+# wifi regulatory database (cfg80211 world-domain fallback without it)
+wireless-regdb
 brightnessctl

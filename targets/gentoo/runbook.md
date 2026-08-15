@@ -70,7 +70,9 @@ printf "en_US.UTF-8 UTF-8\nzh_CN.UTF-8 UTF-8\nja_JP.UTF-8 UTF-8\n" >> /etc/local
 locale-gen
 eselect locale set en_US.utf8
 passwd
-useradd -m -G wheel,video,audio,usb,portage,input,render -s /bin/bash <name>
+# pipewire group: /etc/security/limits.d/25-pw-rlimits.conf grants rtprio
+# through it; without it the audio graph runs without realtime scheduling
+useradd -m -G wheel,video,audio,pipewire,usb,portage,input,render -s /bin/bash <name>
 passwd <name>
 ```
 
