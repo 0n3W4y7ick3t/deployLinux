@@ -182,6 +182,7 @@ by hand occasionally.
 | Windows BSODs 0xED after a Gentoo session | see "Windows will not boot" above; something rw-mounted C: |
 | x13: boots an old kernel after `pacman -Syu` | `/boot/efi` was not mounted when `mkinitcpio -P` ran, so the UKI went to the root fs |
 | x13: no wifi after a reboot | `iwd.service` disabled while NM is configured with `wifi.backend=iwd` |
+| x13: wifi associates at boot but never gets a DHCP lease, only after a Windows session | Windows was *restarted* into Linux. A warm reboot leaves the WCN6855 / AP state from Windows behind; iwd associates fine, NM's DHCP gets nothing for 45 s and gives up. `nmcli connection up '<ssid>'` a few minutes later works, and a clean Linux→Linux reboot or a Windows **shut down** → power on never shows it (verified 2026-08-19). Rule: shut Windows down, don't restart it, when switching to Linux. Fast Startup is not the cause (`hiberfil.sys` absent), and neither is NM/iwd config |
 
 ## The X13 (Arch)
 
