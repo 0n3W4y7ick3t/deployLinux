@@ -84,6 +84,16 @@ config); hostname is irrelevant on purpose. On a machine with multiple
 GitHub identities use the SSH alias form:
 `yadm clone git@github-personal:0n3W4y7ick3t/rice.git`.
 
+`yadm bootstrap` also prepares nvim: it installs the `tree-sitter` CLI
+through mise (the main-branch nvim-treesitter compiles parsers with it),
+creates the python provider venv with pynvim (wilder's cmdline completion
+is a python remote plugin), builds the parsers headless and runs
+`:UpdateRemotePlugins`. So **install mise before running bootstrap**
+(`curl https://mise.run | sh`, it is user-layer, never a distro package);
+without it the step is skipped and the first nvim warns
+"tree-sitter CLI not found" on every start until you rerun
+`yadm bootstrap` or `mise use -g 'ubi:tree-sitter/tree-sitter[exe=tree-sitter]@latest'`.
+
 ## 3. First boot checklist
 
 Log in on tty1 — Hyprland starts automatically. Then:

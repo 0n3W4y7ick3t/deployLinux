@@ -182,6 +182,8 @@ by hand occasionally.
 | Windows BSODs 0xED after a Gentoo session | see "Windows will not boot" above; something rw-mounted C: |
 | x13: boots an old kernel after `pacman -Syu` | `/boot/efi` was not mounted when `mkinitcpio -P` ran, so the UKI went to the root fs |
 | x13: no wifi after a reboot | `iwd.service` disabled while NM is configured with `wifi.backend=iwd` |
+| nvim: "tree-sitter CLI not found" warning, or treesitter download/compile errors on every file | rice's nvim-treesitter is on the main branch and builds parsers with the `tree-sitter` CLI, which comes from mise, not pacman/portage. `yadm bootstrap` installs it and pre-builds the parsers; by hand: `mise use -g 'ubi:tree-sitter/tree-sitter[exe=tree-sitter]@latest'`, then open nvim once |
+| nvim: `Unknown function: _wilder_python_get_file_completion` on `:e` | the python provider pointed at a mise python without pynvim and the remote-plugin manifest was never generated. rice pins `python3_host_prog` to `~/.local/share/nvim/venv`; `yadm bootstrap` creates it and runs `:UpdateRemotePlugins` (2026-08-19) |
 | x13: wifi associates at boot but never gets a DHCP lease, only after a Windows session | Windows was *restarted* into Linux. A warm reboot leaves the WCN6855 / AP state from Windows behind; iwd associates fine, NM's DHCP gets nothing for 45 s and gives up. `nmcli connection up '<ssid>'` a few minutes later works, and a clean Linux→Linux reboot or a Windows **shut down** → power on never shows it (verified 2026-08-19). Rule: shut Windows down, don't restart it, when switching to Linux. Fast Startup is not the cause (`hiberfil.sys` absent), and neither is NM/iwd config |
 
 ## The X13 (Arch)
@@ -232,7 +234,8 @@ rc-service <name> status|start|restart
 
 `40-services.sh` also owns `/etc/sysctl.d/90-bbr.conf` (BBR + fq),
 `/etc/local.d/epp.start` (EPP pinned to performance on desktops),
-`/etc/cron.weekly/fstrim`, `/etc/keyd/default.conf` and
+`/etc/cron.weekly/fstrim`, `/etc/cron.d/emerge-sync` (weekly `emerge --sync`,
+Sunday 21:30, log in `/var/log/emerge-sync.log`), `/etc/keyd/default.conf` and
 `/etc/conf.d/zram-init`. Re-running it restores any of them.
 
 ## What not to do
