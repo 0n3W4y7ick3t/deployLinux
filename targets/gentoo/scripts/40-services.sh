@@ -143,6 +143,19 @@ EOF
 chmod +x /etc/cron.weekly/fstrim
 log "wrote /etc/cron.weekly/fstrim"
 
+# weekly portage tree sync, Sunday 21:30. A cron.d file rather than
+# cron.weekly so the time is explicit (cron.weekly runs whenever cronie's
+# run-parts fires). Quiet, appended to its own log; emerge --sync needs root
+# because /var/db/repos/gentoo is portage:portage 755.
+mkdir -p /etc/cron.d
+cat > /etc/cron.d/emerge-sync <<'EOF'
+SHELL=/bin/sh
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+30 21 * * 0 root emerge --sync -q >> /var/log/emerge-sync.log 2>&1
+EOF
+chmod 644 /etc/cron.d/emerge-sync
+log "wrote /etc/cron.d/emerge-sync"
+
 # user crontabs. cronie DOES ship /var/spool/cron/crontabs, but its parent
 # was left drwxr-x--- root:cron here, and /usr/bin/crontab is setgid
 # **crontab** (not cron) — so it cannot traverse into its own spool. Every
