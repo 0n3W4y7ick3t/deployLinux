@@ -41,5 +41,7 @@ dev-db/dbeaver-bin
 # terminal mail (2026-08-20): pulls neomutt, isync, msmtp, pass, notmuch.
 # msmtp[mta] replaces nullmailer as the virtual/mta provider. The rice layer
 # already binds mw -Y to $mod+F8; accounts live in pass, not in this repo.
+# paperkey archives the gpg secret key to printable text.
 mail-client/mutt-wizard
+app-crypt/paperkey
 
