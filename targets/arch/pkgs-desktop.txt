@@ -56,3 +56,6 @@ notmuch
 playerctl
 pulsemixer
 typst
+# mtp mounting for garmin watch / android phones (aft-mtp-mount + mtp-detect)
+android-file-transfer
+libmtp

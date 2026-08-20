@@ -45,3 +45,9 @@ dev-db/dbeaver-bin
 mail-client/mutt-wizard
 app-crypt/paperkey
 
+# mtp mounting for garmin watch / android phones (2026-08-20).
+# aft-mtp-mount is the FUSE mount; libmtp is wanted for its uaccess udev
+# rules (elogind grants the seat user access) and mtp-detect.
+sys-fs/android-file-transfer-linux
+media-libs/libmtp
+
