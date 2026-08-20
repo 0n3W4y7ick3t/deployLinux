@@ -1,3 +1,7 @@
 # mutt-wizard (profiles/desktop/world-extra) hard-requires these on its
 # neomutt: sasl for gmail/oauth-capable IMAP auth, notmuch for indexing.
 mail-client/neomutt sasl notmuch
+
+# gui passphrase dialog, needed when gpg is invoked without a tty
+# (passmenu keybind, neomutt mailsync). pair with: eselect pinentry set pinentry-qt
+app-crypt/pinentry qt6
