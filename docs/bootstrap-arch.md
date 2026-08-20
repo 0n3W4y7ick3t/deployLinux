@@ -107,3 +107,12 @@ The Kali VM script is reusable as-is:
 [`targets/gentoo/scripts/51-kali-vm.sh`](../targets/gentoo/scripts/51-kali-vm.sh)
 runs on any libvirt host (export `GENTOO_PROFILE=desktop` to satisfy its
 profile gate).
+
+## Mail (manual, after packages)
+
+`pkgs-desktop.txt` installs the neomutt stack (neomutt, isync, msmtp,
+notmuch) and `pkgs-aur.txt` has mutt-wizard. Mail account configs
+(`~/.config/mutt`, `~/.mbsyncrc`, `~/.config/msmtp/config`) are
+machine-local: copy them from a working machine (strip accounts that do
+not belong on this one) or regenerate with `mw -a`; passwords come from
+pass. Smoke test: `mw -Y`.

@@ -48,6 +48,11 @@ imv
 zathura
 zathura-pdf-mupdf
 pass
+# terminal mail (mutt-wizard stack; mutt-wizard itself is AUR)
+neomutt
+isync
+msmtp
+notmuch
 playerctl
 pulsemixer
 typst

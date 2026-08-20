@@ -4,3 +4,5 @@ nsxiv
 google-cloud-cli
 # cursor theme, macOS (+ macOS-White); Gentoo gets it from the @hyprland set
 apple_cursor
+# terminal mail configurator (stack itself is in pkgs-desktop.txt)
+mutt-wizard
