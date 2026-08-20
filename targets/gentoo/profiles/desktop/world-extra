@@ -38,3 +38,8 @@ dev-util/shellcheck-bin
 dev-db/mariadb
 dev-db/dbeaver-bin
 
+# terminal mail (2026-08-20): pulls neomutt, isync, msmtp, pass, notmuch.
+# msmtp[mta] replaces nullmailer as the virtual/mta provider. The rice layer
+# already binds mw -Y to $mod+F8; accounts live in pass, not in this repo.
+mail-client/mutt-wizard
+

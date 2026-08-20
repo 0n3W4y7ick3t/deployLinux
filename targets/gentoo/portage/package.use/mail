@@ -1,0 +1,3 @@
+# mutt-wizard (profiles/desktop/world-extra) hard-requires these on its
+# neomutt: sasl for gmail/oauth-capable IMAP auth, notmuch for indexing.
+mail-client/neomutt sasl notmuch
