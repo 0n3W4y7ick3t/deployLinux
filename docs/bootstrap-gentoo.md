@@ -94,6 +94,13 @@ without it the step is skipped and the first nvim warns
 "tree-sitter CLI not found" on every start until you rerun
 `yadm bootstrap` or `mise use -g 'ubi:tree-sitter/tree-sitter[exe=tree-sitter]@latest'`.
 
+`yadm bootstrap` also refreshes the statusbar logo font
+(`~/.scripts/build-logo-font`, needs `pip install fonttools pillow` in the
+mise python). Without those deps the step is skipped and the yadm-tracked
+`~/.local/share/fonts/logos.ttf` is used as-is — the font ships in the
+rice repo precisely so a fresh machine never depends on the network or a
+python toolchain for it.
+
 ## 3. First boot checklist
 
 Log in on tty1 — Hyprland starts automatically. Then:
