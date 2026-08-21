@@ -1,5 +1,9 @@
 # Hyprland desktop stack (official repos)
 hyprland
+# hyprpm build deps (plugins, e.g. hyprexpo on the laptop); gcc/git/cpio
+# are already base. Rebuild plugins after every hyprland upgrade: hyprpm update
+cmake
+meson
 kitty
 waybar
 hypridle
