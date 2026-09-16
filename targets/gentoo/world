@@ -75,17 +75,20 @@ dev-util/github-cli
 #                        targets). mise's rust backend is a symlink to it.
 #   gopls, goimports  -> mise's go: backend, so they follow the pinned go
 # So gone from this list: dev-lang/go, dev-go/gopls, dev-go/go-tools,
-# dev-lang/python, dev-python/pip, dev-lang/rust-bin, llvm-core/clang.
+# dev-lang/python, dev-python/pip, dev-lang/rust-bin.
 #
-# All of them stay *installed* as build dependencies, which is the point —
-# that copy builds portage packages and is never the dev toolchain:
+# Those stay *installed* as build dependencies, which is the point — that
+# copy builds portage packages and is never the dev toolchain:
 #   go     <- docker, containerd, runc, gh, kubectl, k9scli, minikube,
 #             tailscale, fzf, lf, cliphist, yq-go (~20 packages)
 #   python <- portage itself, yadm, at-spi2-core, brotli, gcr, libsecret, ...
-#   clang  <- python, hyprland, hyprlang, hyprwire, xdg-desktop-portal-hyprland,
-#             qttools, eigen
-# C++ is deliberately NOT version-managed: sys-devel/gcc is @system, the
-# compiler that builds the whole OS.
+#
+# llvm-core/clang is the exception that has to be asked for (2026-09-16):
+# nothing depends on it any more, so depclean takes it — and with it
+# /usr/lib/llvm/*/bin/clangd, the C/C++ language server nvim expects to find
+# on PATH. C++ itself is deliberately NOT version-managed: sys-devel/gcc is
+# @system, the compiler that builds the whole OS.
+llvm-core/clang
 dev-python/pynvim
 dev-debug/gdb
 dev-debug/valgrind
