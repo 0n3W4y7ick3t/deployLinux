@@ -2,6 +2,7 @@
 # (installed on a desktop chassis or with --desktop; the laptop skips these)
 docker
 docker-compose
+docker-buildx
 nvidia-container-toolkit
 minikube
 kubectl

@@ -131,3 +131,6 @@ media-gfx/graphviz
 app-containers/docker
 app-containers/docker-cli
 app-containers/docker-compose
+# buildx is the builder behind `docker build` now: docker-cli 29 deprecated
+# the legacy one and will drop it
+app-containers/docker-buildx
