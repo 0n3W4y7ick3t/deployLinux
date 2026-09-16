@@ -101,6 +101,96 @@ if ! emerge --quiet --jobs=1 @module-rebuild; then
     log "nvidia.ko is stale. Fix it before rebooting, or boot the .old entry."
 fi
 
+# Point rEFInd at the kernel just built. In here rather than a postinst.d
+# hook for the same reason as the module rebuild above, and non-fatal for
+# the same one too: booting the previous kernel is recoverable, a kernel
+# install aborted halfway is not.
+#
+# Left to itself rEFInd boots the previously-booted OS, which right after a
+# kernel upgrade is still the old kernel — the new one is reachable only by
+# picking it by hand. default_selection cannot fix that on its own either:
+# folding turns every kernel past the first into a sub-option, and a
+# sub-option cannot be named as the default. So generate one explicit entry
+# whose title never changes while the kernel it loads does, with the other
+# kernels as sub-options under F2. refind.conf's default_selection names
+# that title, and the menu keeps the single icon folding was there to give.
+#
+# dont_scan_files is written inside the generated block rather than checked
+# into refind.conf, and that placement is the safety property: lose the
+# block and auto-detection returns, so the worst case is an uglier menu
+# rather than a machine with no Linux entry at all.
+#
+# The ESP is out of fstab on purpose (see the commented line there), so
+# mount it only if needed and leave it as it was found.
+esp_uuid=6641-7CF6
+refind_begin='# BEGIN kernel-build-sh'
+refind_end='# END kernel-build-sh'
+refind_entry() {
+    release=$(make -s kernelrelease)
+    [ -n "$release" ] || return 1
+    [ -f "/boot/vmlinuz-$release" ] || return 1
+
+    # refind_linux.conf stays the single source of the cmdline; lift its
+    # "Boot default" options verbatim so this entry boots byte-identically
+    # to what the auto-detected one did.
+    opts=$(sed -n 's/^"Boot default"[[:space:]]*"\(.*\)"[[:space:]]*$/\1/p' \
+        /boot/refind_linux.conf 2>/dev/null)
+    [ -n "$opts" ] || return 1
+
+    mounted=0
+    if ! mountpoint -q /boot/efi; then
+        mount "UUID=$esp_uuid" /boot/efi || return 1
+        mounted=1
+    fi
+
+    conf=/boot/efi/EFI/refind/refind.conf
+    rc=0
+    if [ -f "$conf" ]; then
+        hide=''
+        for k in /boot/vmlinuz-*; do
+            [ -f "$k" ] || continue
+            hide="${hide:+$hide,}${k##*/}"
+        done
+
+        block=$(mktemp)
+        {
+            echo "$refind_begin"
+            echo "dont_scan_files $hide"
+            echo 'menuentry "Gentoo Linux" {'
+            echo '    icon    /EFI/refind/icons/os_gentoo.png'
+            echo '    volume  gentoo'
+            echo "    loader  /boot/vmlinuz-$release"
+            echo "    options \"$opts\""
+            for k in /boot/vmlinuz-*; do
+                [ -f "$k" ] || continue
+                kb=${k##*/}
+                [ "$kb" = "vmlinuz-$release" ] && continue
+                echo "    submenuentry \"${kb#vmlinuz-}\" {"
+                echo "        loader /boot/$kb"
+                echo '    }'
+            done
+            echo '}'
+            echo "$refind_end"
+        } > "$block"
+
+        sed -i "/^$refind_begin\$/,/^$refind_end\$/d" "$conf"
+        printf '\n' >> "$conf"
+        cat "$block" >> "$conf"
+        rm -f "$block"
+        log "refind entry -> vmlinuz-$release ($(echo "$hide" | tr ',' '\n' | wc -l) kernels)"
+    else
+        rc=1
+    fi
+
+    if [ "$mounted" = 1 ]; then
+        umount /boot/efi || log "WARNING: ESP left mounted at /boot/efi"
+    fi
+    return "$rc"
+}
+# the || keeps set -e out of the function body, so a failure anywhere in it
+# is reported rather than aborting a kernel that is already installed
+refind_entry || log "WARNING: could not write the rEFInd entry — pick the new kernel by hand"
+
 log "installed:"
 ls -1 /boot/vmlinuz-* 2>/dev/null || log "WARNING: no /boot/vmlinuz-*, is sys-kernel/installkernel merged?"
 log "build.sh done — check refind_linux.conf still names a kernel that exists"

@@ -102,13 +102,32 @@ stays reviewable and symbols renamed upstream do not silently persist.
 
 ```sh
 sudo emerge -u sys-kernel/gentoo-sources
+eselect kernel list                 # the new tree will NOT be starred
+sudo eselect kernel set <n>         # point /usr/src/linux at it
 sudo ~/akira/deployLinux/targets/gentoo/profiles/desktop/kernel/build.sh
 ```
 
-It selects the newest source tree, merges the fragment, **asserts** the
-symbols that must be builtin, builds, installs, and — through
+**The `eselect kernel set` step is not optional.** `build.sh` only picks the
+newest tree when `/usr/src/linux` is missing; when the symlink exists it
+follows it, on purpose, so an explicit choice is never overridden. But
+`gentoo-sources` is merged with `-symlink`, so portage never repoints it
+either. Skip the step and you rebuild the kernel you are already running,
+which is silent — the only hint is the `>>> building /usr/src/linux-<old>`
+line at the top.
+
+That also hides a second failure. A tree that was built under a compiler
+portage has since removed still holds `.cmd` files referencing its header
+paths, so rebuilding it dies with `No rule to make target
+'/usr/lib/gcc/.../<gone>/include/stddef.h'`. The new tree is pristine and
+never hits this; only reach for `make clean` if you deliberately want to
+rebuild an old kernel under the current toolchain.
+
+From there build.sh merges the fragment, **asserts** the symbols that must
+be builtin, builds, installs, and — through
 `/etc/kernel/postinst.d/90-nvidia-modules` — rebuilds `nvidia.ko` against
-the new kernel. Nothing else to remember.
+the new kernel. It builds against `/usr/src/linux`, not the running kernel,
+so the module for the new kernel exists before you boot it; booting first
+would leave you on a kernel with no `nvidia.ko` and no compositor.
 
 Then, if the kernel version changed, point rEFInd at it:
 
@@ -234,6 +253,7 @@ by hand occasionally.
 | no network after boot | `dhcpcd` not in the default runlevel; `r8169` is a module, check `lsmod` |
 | no session / logind errors | `elogind` not in the **boot** runlevel |
 | microcode loaded late | `CONFIG_EXTRA_FIRMWARE` did not take — check the path exists under `/lib/firmware` |
+| microcode never updates: `Current revision` with no `Updated early from:` | not a config fault. The kernel refuses microcode it cannot trust on a board whose firmware predates the EntrySign fix (AMD-SB-7033), and holds the CPU at whatever the BIOS supplied. Verify with the two delivery paths before blaming them: `.builtin_fw` in `vmlinux` for the builtin blob, and `Unpacking initramfs` plus `initrd=/boot/amd-uc.img` on the cmdline for the image. If both are present the fix is a BIOS update, not a Linux change |
 | Japanese renders as boxes | `media-fonts/noto-cjk` missing |
 | IME popup misplaced in GTK4/Qt6 | something is exporting `GTK_IM_MODULE`/`QT_IM_MODULE` — it must not be set on Wayland |
 | Hyprland aborts at start, "no gpus" in `~/.cache/hyprland/session.log` | `AQ_DRM_DEVICES` contains a by-path name — it is a colon-separated list and by-path names contain colons. The pin belongs in rice's `shell/profile` (resolved at login), never in a hyprland config |
