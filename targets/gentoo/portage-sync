@@ -1,0 +1,148 @@
+#!/bin/sh
+# Portage tree sync with desktop notifications, fired by
+# /etc/cron.d/emerge-sync. Installed to /usr/local/sbin/portage-sync by
+# 40-services.sh, and self-contained on purpose: it runs from cron on the
+# installed system and cannot source anything out of this repo.
+#
+# It syncs the tree and stops there. Updating @world unattended is
+# deliberately not done: on ~amd64 a bad update can wedge the machine with
+# nobody watching, and news items regularly need action *before* the
+# update. Reading the news and running the update stays a human job.
+set -u
+
+LOG=/var/log/emerge-sync.log
+NOTIFY_USER=leon
+JITTER_MAX=300
+MAX_TITLES=10
+
+logmsg() {
+    printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG"
+}
+
+# Print the user's D-Bus session address.
+#
+# There is no /run/user/<uid>/bus on this machine: rice's .zprofile execs
+# `dbus-run-session start-hyprland`, so the bus socket is a random /tmp
+# path regenerated at every login. The usual cron recipe hardcodes
+# /run/user/<uid>/bus and silently notifies nothing forever, so read the
+# address from a process already inside the session instead. dunst is the
+# one to ask -- it is the notification daemon, so if it is not running
+# there is nothing to deliver to anyway.
+session_bus() {
+    for _pid in $(pgrep -u "$NOTIFY_USER" -x dunst 2>/dev/null); do
+        _addr=$(tr '\0' '\n' < "/proc/$_pid/environ" 2>/dev/null |
+            sed -n 's/^DBUS_SESSION_BUS_ADDRESS=//p' | head -n1)
+        if [ -n "$_addr" ]; then
+            printf '%s\n' "$_addr"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# notify <urgency> <summary> <body>
+# Best effort: a sync that runs while nobody is logged in still succeeds,
+# it just stays quiet.
+notify() {
+    _bus=$(session_bus) || return 0
+    # runuser execs the argv directly, so no shell quoting layer sits
+    # between us and the message text
+    runuser -u "$NOTIFY_USER" -- env "DBUS_SESSION_BUS_ADDRESS=$_bus" \
+        notify-send -a portage-sync -u "$1" -- "$2" "$3" >/dev/null 2>&1 || true
+}
+
+# dunst renders the body as pango markup (rice's dunstrc sets a markup
+# format), and news titles really do contain & and angle brackets. Without
+# escaping, pango fails to parse and the line is dropped silently.
+pango_escape() {
+    sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'
+}
+
+# Titles of the unread news items, one indented line each.
+#
+# Read out of portage's own state rather than through eselect: every form
+# of `eselect news read` marks the items read, and a job running unattended
+# at night must never consume news the user has not seen. The .unread file
+# already holds exactly the relevant items, because portage files the ones
+# that fail their Display-If restrictions under .skip instead.
+news_titles() {
+    for _f in /var/lib/gentoo/news/news-*.unread; do
+        [ -f "$_f" ] || continue
+        _repo=${_f##*/news-}
+        _repo=${_repo%.unread}
+        _path=$(portageq get_repo_path / "$_repo" 2>/dev/null) || continue
+        [ -n "$_path" ] || continue
+        while IFS= read -r _item; do
+            [ -n "$_item" ] || continue
+            _txt=$_path/metadata/news/$_item/$_item.en.txt
+            _title=''
+            [ -f "$_txt" ] &&
+                _title=$(sed -n 's/^Title:[[:space:]]*//p' "$_txt" | head -n1)
+            # an item whose file cannot be read still deserves a line; the
+            # directory name is descriptive enough to grep for afterwards
+            [ -n "$_title" ] || _title=$_item
+            printf '  %s\n' "$_title"
+        done < "$_f"
+    done
+}
+
+# logrotate is not installed here, so the log keeps itself in check
+if [ -f "$LOG" ] && [ "$(wc -c < "$LOG" 2>/dev/null || echo 0)" -gt 1048576 ]; then
+    mv -f "$LOG" "$LOG.old"
+fi
+
+# Mirror etiquette: the rsync rotation asks for at most one sync per day,
+# and every cron on the planet fires exactly on the hour. Spread out by up
+# to JITTER_MAX seconds. The "started" notification comes after the sleep
+# so that it reports the real start time.
+rand=$(od -An -N2 -tu2 < /dev/urandom 2>/dev/null | tr -dc '0-9')
+[ -n "$rand" ] || rand=0
+sleep $(( rand % (JITTER_MAX + 1) ))
+
+started=$(date +%s)
+logmsg "=== sync starting ==="
+notify normal "Portage sync started" "Syncing the portage tree and overlays."
+
+# --sync covers every repo with auto-sync enabled, so the two git overlays
+# (guru, hyproverlay) come along with the rsync'd main tree.
+if emerge --sync --quiet >> "$LOG" 2>&1; then
+    rc=0
+else
+    rc=$?
+fi
+
+elapsed=$(( $(date +%s) - started ))
+duration=$(printf '%dm%02ds' $(( elapsed / 60 )) $(( elapsed % 60 )))
+
+if [ "$rc" -ne 0 ]; then
+    logmsg "=== sync FAILED (exit $rc) after $duration ==="
+    notify critical "Portage sync failed" "Exit $rc after $duration. See $LOG."
+    exit "$rc"
+fi
+
+logmsg "=== sync finished in $duration ==="
+notify normal "Portage sync finished" "Tree updated in $duration."
+
+# News gets its own notification at critical urgency, which dunst leaves on
+# screen until it is dismissed. Some items need action before the next
+# @world update, so this is the one message that must not scroll past.
+news=$(eselect news count new 2>/dev/null) || news=0
+case $news in
+'' | *[!0-9]*) news=0 ;;
+esac
+if [ "$news" -gt 0 ]; then
+    titles=$(news_titles)
+    logmsg "$news unread news item(s):"
+    printf '%s\n' "$titles" >> "$LOG"
+
+    # Long lists would grow the popup without bound, so show the first few
+    # and say how many are left. The full list is in the log either way.
+    count=$(printf '%s\n' "$titles" | grep -c . 2>/dev/null) || count=0
+    body=$(printf '%s\n' "$titles" | head -n "$MAX_TITLES" | pango_escape)
+    if [ "$count" -gt "$MAX_TITLES" ]; then
+        body=$(printf '%s\n  ... and %d more' "$body" "$(( count - MAX_TITLES ))")
+    fi
+    notify critical "Portage: $news unread news item(s)" "$body"
+fi
+
+exit 0

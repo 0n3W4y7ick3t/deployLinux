@@ -143,15 +143,25 @@ EOF
 chmod +x /etc/cron.weekly/fstrim
 log "wrote /etc/cron.weekly/fstrim"
 
-# weekly portage tree sync, Sunday 21:30. A cron.d file rather than
+# weekly portage tree sync, Saturday 22:00. A cron.d file rather than
 # cron.weekly so the time is explicit (cron.weekly runs whenever cronie's
-# run-parts fires). Quiet, appended to its own log; emerge --sync needs root
+# run-parts fires). The work is in portage-sync, which logs to
+# /var/log/emerge-sync.log and notifies the desktop session; it needs root
 # because /var/db/repos/gentoo is portage:portage 755.
+install -m 755 "$script_dir/../portage-sync" /usr/local/sbin/portage-sync
+log "installed /usr/local/sbin/portage-sync"
+
+# MAILTO is empty because the script is silent on stdout and keeps its own
+# log — without it cronie would try to mail root on every run. /usr/local/sbin
+# is not in cron's default PATH, so it is prepended rather than the job
+# spelling out an absolute path.
 mkdir -p /etc/cron.d
 cat > /etc/cron.d/emerge-sync <<'EOF'
 SHELL=/bin/sh
-PATH=/sbin:/bin:/usr/sbin:/usr/bin
-30 21 * * 0 root emerge --sync -q >> /var/log/emerge-sync.log 2>&1
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+MAILTO=""
+# day 6 is Saturday
+0 22 * * 6 root portage-sync
 EOF
 chmod 644 /etc/cron.d/emerge-sync
 log "wrote /etc/cron.d/emerge-sync"

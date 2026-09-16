@@ -23,6 +23,49 @@ sudo emerge --depclean -p           # review before running without -p
 `--keep-going` matters on a fleet this size: one broken leaf package
 should not stop the other 900.
 
+### The weekly sync
+
+`/etc/cron.d/emerge-sync` runs `/usr/local/sbin/portage-sync` as root every
+Saturday at 22:00, so the first line above is usually already done for you.
+It syncs the main tree and both git overlays, logs to
+`/var/log/emerge-sync.log`, and rotates that log itself at 1 MiB because
+logrotate is not installed here. It never updates `@world`: an unattended
+update can wedge the machine with nobody watching, and news items regularly
+need action before the update runs.
+
+Three desktop notifications come out of it, one when the sync starts, one
+when it finishes with the elapsed time, and one for news that gives the
+count and lists the titles, capped at ten with a count of the remainder so
+a big backlog cannot grow the popup without bound. The full list always
+goes to the log. The news one is sent at critical urgency and carries no
+explicit timeout, so it picks up the `timeout = 0` from rice's dunstrc and
+stays on screen until dismissed, while the other two expire on the normal
+five seconds. Passing `-t` would override the urgency rule, which is
+exactly why the script does not pass one.
+
+Those titles are read straight out of `/var/lib/gentoo/news/news-*.unread`
+and the item files under `metadata/news/`, never through eselect. Every
+form of `eselect news read` marks items read, and a job that runs
+unattended at night must not consume news nobody has seen. Read the items
+themselves in a terminal with `eselect news read`, where they can be copied
+and searched.
+
+Notifications reach the session through a bus address read out of dunst's
+own `/proc/<pid>/environ`. That indirection is load-bearing. Because the
+session is started by `dbus-run-session`, the bus socket is a random `/tmp`
+path recreated at every login, and the usual `/run/user/<uid>/bus` that
+cron recipes hardcode does not exist on this machine at all. A job that
+assumed it would notify nothing and report no error.
+
+**A sync only happens if the machine is on at that moment.** cronie-anacron
+is not installed, so a missed run is skipped rather than caught up at the
+next boot, and a weekly schedule gets exactly one attempt per week. This is
+not hypothetical: the job did not run once between mid-August and
+mid-September 2026 because the desktop was powered off on every Saturday
+night in that window, and the tree quietly aged a month. Check
+`eselect news count new` and the tail of the log after any long absence, and
+sync by hand before updating rather than assuming cron did it.
+
 Three kinds of elog noise are expected after every update and need no
 action:
 
@@ -250,9 +293,10 @@ rc-service <name> status|start|restart
 
 `40-services.sh` also owns `/etc/sysctl.d/90-bbr.conf` (BBR + fq),
 `/etc/local.d/epp.start` (EPP pinned to performance on desktops),
-`/etc/cron.weekly/fstrim`, `/etc/cron.d/emerge-sync` (weekly `emerge --sync`,
-Sunday 21:30, log in `/var/log/emerge-sync.log`), `/etc/keyd/default.conf` and
-`/etc/conf.d/zram-init`. Re-running it restores any of them.
+`/etc/cron.weekly/fstrim`, `/etc/cron.d/emerge-sync` and its
+`/usr/local/sbin/portage-sync` (weekly tree sync, see below),
+`/etc/keyd/default.conf` and `/etc/conf.d/zram-init`. Re-running it restores
+any of them.
 
 ## What not to do
 
