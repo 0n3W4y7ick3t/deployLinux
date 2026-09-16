@@ -152,12 +152,22 @@ refind_entry() {
             hide="${hide:+$hide,}${k##*/}"
         done
 
+        # Follow the active theme's icon set, so this entry keeps the look of
+        # the auto-detected one it replaces. A theme's icons_dir is relative
+        # to EFI/refind; fall back to rEFInd's own icons if it has no gentoo.
+        icon=/EFI/refind/icons/os_gentoo.png
+        idir=$(sed -n 's|^[[:space:]]*icons_dir[[:space:]]\{1,\}||p' \
+            /boot/efi/EFI/refind/themes/*/theme.conf 2>/dev/null | tail -1)
+        if [ -n "$idir" ] && [ -f "/boot/efi/EFI/refind/$idir/os_gentoo.png" ]; then
+            icon="/EFI/refind/$idir/os_gentoo.png"
+        fi
+
         block=$(mktemp)
         {
             echo "$refind_begin"
             echo "dont_scan_files $hide"
             echo 'menuentry "Gentoo Linux" {'
-            echo '    icon    /EFI/refind/icons/os_gentoo.png'
+            echo "    icon    $icon"
             echo '    volume  gentoo'
             echo "    loader  /boot/vmlinuz-$release"
             echo "    options \"$opts\""
