@@ -25,6 +25,10 @@ gui-apps/wl-clipboard
 x11-misc/ydotool
 x11-misc/dunst
 x11-misc/gammastep
+# night screen warmth over CTM (hyprland_ctm_control): the path that works on
+# NVIDIA, where gammastep's gamma ramp cannot tint. Driven by gammastep's
+# period hook, not its own scheduler.
+gui-apps/hyprsunset
 sys-apps/xdg-desktop-portal
 # FileChooser/OpenURI/Settings backend; portal-hyprland only does
 # screenshot/screencast/global-shortcuts

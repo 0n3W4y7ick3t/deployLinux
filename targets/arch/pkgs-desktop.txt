@@ -26,6 +26,9 @@ dunst
 # notify-send lives here, not in dunst; every rice script notifies through it
 libnotify
 gammastep
+# night screen warmth over CTM, driven by gammastep's period hook (gammastep's
+# own gamma tint can't touch the screen on NVIDIA)
+hyprsunset
 keyd
 polkit
 # polkitd alone only answers on D-Bus; without an agent every GUI privilege
