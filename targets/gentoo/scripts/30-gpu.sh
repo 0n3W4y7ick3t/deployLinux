@@ -21,13 +21,18 @@ fi
 # USE (modules kernel-open -dist-kernel) comes from portage/package.use/nvidia
 emerge --noreplace x11-drivers/nvidia-drivers
 
-cat > /etc/modprobe.d/nvidia.conf <<'EOF'
-# modeset+fbdev: proper KMS handoff for wayland; PreserveVideoMemoryAllocations:
-# required for reliable suspend/resume on wayland compositors
-options nvidia_drm modeset=1 fbdev=1
-options nvidia NVreg_PreserveVideoMemoryAllocations=1
-EOF
-log "wrote /etc/modprobe.d/nvidia.conf"
+# /etc/modprobe.d/nvidia.conf is deliberately NOT written here. It ships
+# with nvidia-drivers, so writing it made every driver bump raise an
+# etc-update conflict, and taking our side of that conflict quietly
+# reverted upstream's improvements: the nouveau/nova blacklists, the video
+# group device permissions, and NVreg_UseKernelSuspendNotifiers, which
+# supersedes the NVreg_PreserveVideoMemoryAllocations this used to set
+# (the notifier implies it, and drops the old suspend services).
+#
+# Nothing is lost by leaving it alone. The modeset+fbdev half that mattered
+# for wayland's KMS handoff is on the kernel cmdline in
+# profiles/desktop/refind_linux.conf, which is where it belongs: it applies
+# at boot, before any module loads, and is checked in.
 
 # Reminder only. This used to run `emerge @module-rebuild` directly, which
 # broke twice over: make(1) exports MAKEFLAGS/KBUILD_* into the hook, so
