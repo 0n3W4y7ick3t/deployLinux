@@ -225,8 +225,10 @@ installed — a `--graphics spice` domain has no viewer at all),
 and the polkit rules; without it the rw socket is root-only `0700` and only
 sudo can drive a VM), and actual group membership. `50-virt.sh`/`30-gpu.sh`
 used to just `log "reminder: usermod ..."` and never do it; they now add
-`${VIRT_USER:-$SUDO_USER}` to `libvirt`/`kvm`/`video`. Group changes need a
-re-login.
+`${VIRT_USER:-$SUDO_USER}` to `libvirt`/`kvm`/`video`. `20-world.sh` does
+the same for `pcap` (wireshark's dumpcap is `root:pcap 0750`, so capture
+fails without it) and the Arch bootstrap for that distro's `wireshark`
+group. Group changes need a re-login.
 
 **fcitx5 on Wayland**: set `XMODIFIERS` only. Forcing `GTK_IM_MODULE` or
 `QT_IM_MODULE` pushes GTK4/Qt6 onto the X11 path and breaks the candidate

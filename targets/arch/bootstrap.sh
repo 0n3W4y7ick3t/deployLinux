@@ -113,6 +113,19 @@ else
 fi
 log "installed /etc/udev/rules.d/80-uinput.rules"
 
+# wireshark-cli (pulled by wireshark-qt in pkgs-desktop-extra) ships dumpcap
+# as root:wireshark 0750, so capturing as a normal user needs the group.
+# Gentoo calls the same group pcap, added in scripts/20-world.sh.
+if [ -n "${SUDO_USER:-}" ] && getent group wireshark >/dev/null 2>&1; then
+    if id -nG "$SUDO_USER" | tr ' ' '\n' | grep -qx wireshark; then
+        log "$SUDO_USER already in wireshark"
+    else
+        usermod -aG wireshark "$SUDO_USER" && log "added $SUDO_USER to wireshark"
+    fi
+else
+    log "no SUDO_USER or no wireshark group, skipping (usermod -aG wireshark <user>)"
+fi
+
 # backslashes are pre-doubled in common/issue so agetty prints them
 cp -f "$common_dir/issue" /etc/issue
 log "installed /etc/issue"
