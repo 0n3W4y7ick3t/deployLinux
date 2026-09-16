@@ -51,3 +51,11 @@ app-crypt/paperkey
 sys-fs/android-file-transfer-linux
 media-libs/libmtp
 
+# desktop apps that were installed by hand before this file caught up
+# (2026-09-16): an editor, a git TUI and two chat clients. The proprietary
+# ones need no package.license entry — make.conf.shared sets ACCEPT_LICENSE="*".
+app-editors/vscode
+dev-vcs/lazygit
+net-im/slack
+net-im/telegram-desktop-bin
+
