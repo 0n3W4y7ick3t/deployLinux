@@ -23,6 +23,22 @@ sudo emerge --depclean -p           # review before running without -p
 `--keep-going` matters on a fleet this size: one broken leaf package
 should not stop the other 900.
 
+Three kinds of elog noise are expected after every update and need no
+action:
+
+- **docker and runc: "CONFIG_IP_NF_… is not set when it should be"**. Their
+  `check_extra_config`, like docker's own `contrib/check-config.sh`, only
+  knows the legacy xtables symbol names. This kernel is nftables-only on
+  purpose — `config-fragment` explains it, and `build.sh` asserts the
+  symbols docker really uses.
+- **docker.log: "unresolvable CDI devices nvidia.com/gpu=all"**. Docker
+  tries CDI first and falls back to the nvidia hook, which is what
+  `--gpus all` has always used here. A CDI spec would only be one more file
+  to regenerate after every driver bump.
+- **optional-dependency lists** (strace, neovim-ruby, kitty's X11
+  startup-notification…). The tools this machine really uses come from
+  mise, cargo or the user layer.
+
 Then, when a package refuses to resolve, **fix it in this repo, not in
 `/etc/portage`**. Add the flag to `targets/gentoo/portage/package.use/deps`
 with a comment naming the consumer, then:
