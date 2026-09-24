@@ -112,7 +112,8 @@ Log in on tty1 — Hyprland starts automatically. Then:
 - `nvidia-smi` works; `cat /sys/module/nvidia_drm/parameters/modeset` is `Y`.
 - `docker run --rm hello-world`, then
   `docker run --rm --gpus all nvidia/cuda:12.9.0-base-ubuntu24.04 nvidia-smi`.
-- `minikube start --driver=docker && kubectl get nodes`.
+- `minikube start --driver=docker && kubectl get nodes`, in an interactive
+  shell after `mise install`.
 - `virsh list --all`; run `51-kali-vm.sh` when you want the lab VM.
 - Bluetooth pairs (`bluetoothctl`), fcitx5 types Chinese in kitty and
   Firefox, Caps Lock and Escape are swapped.

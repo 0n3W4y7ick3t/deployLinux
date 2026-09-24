@@ -71,7 +71,7 @@ Why: exact hardware on the TUF B850-PLUS WIFI.
 ## Misc
 
 - `WIREGUARD`, `TUN` — VPNs (tailscale, warp).
-- `PACKET`, `USB_MON` — wireshark/nmap capture.
+- `PACKET`, `USB_MON` — nmap capture.
 - `IKCONFIG_PROC` — running config at /proc/config.gz.
 - CRC32C — required by xfs/btrfs/iscsi paths, keep accelerated.
 

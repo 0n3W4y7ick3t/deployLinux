@@ -103,9 +103,8 @@ gcloud is NOT in the world lists: install it from the official Google
 tarball afterwards.
 
 Overlays: 10-portage.sh enables **hyproverlay** (hyprland stack) and
-**GURU**. Note `app-misc/lf`, `media-gfx/nsxiv` and `app-misc/tealdeer`
-are GURU-only these days (gone from ::gentoo); the accept_keywords file
-already covers them.
+**GURU**. Note `app-misc/lf` and `media-gfx/nsxiv` are GURU-only these days
+(gone from ::gentoo); the accept_keywords file already covers them.
 
 Verify: each script logs completion; `emerge -pvuDN @world` is calm.
 
@@ -150,7 +149,8 @@ Verify: `efibootmgr -v` lists rEFInd, then reboot into it.
   (late loading means CONFIG_EXTRA_FIRMWARE did not take)
 - `docker run --rm hello-world`
 - `docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu24.04 nvidia-smi`
-- `minikube start --driver=docker && kubectl get nodes`
+- `minikube start --driver=docker && kubectl get nodes` (interactive shell,
+  after `mise install`)
 - `virsh list --all` answers (libvirtd up)
 - `bluetoothctl` pairs a device
 - fcitx5 switches input methods (Ctrl+Space) — Pinyin and Mozc must be

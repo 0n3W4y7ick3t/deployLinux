@@ -46,7 +46,6 @@ app-misc/fastfetch
 app-misc/lf
 app-misc/tmux
 app-text/sdcv
-app-misc/tealdeer
 app-text/tree
 sys-apps/bat
 sys-apps/fd
@@ -79,18 +78,19 @@ dev-util/github-cli
 #
 # Those stay *installed* as build dependencies, which is the point — that
 # copy builds portage packages and is never the dev toolchain:
-#   go     <- docker, containerd, runc, gh, kubectl, k9scli, minikube,
-#             tailscale, fzf, lf, cliphist, yq-go (~20 packages)
+#   go     <- docker, containerd, runc, gh, tailscale, fzf, lf, cliphist,
+#             yq-go (~17 packages)
 #   python <- portage itself, yadm, at-spi2-core, brotli, gcr, libsecret, ...
 #
-# llvm-core/clang is the exception that has to be asked for (2026-09-16):
-# nothing depends on it any more, so depclean takes it — and with it
-# /usr/lib/llvm/*/bin/clangd, the C/C++ language server nvim expects to find
-# on PATH. C++ itself is deliberately NOT version-managed: sys-devel/gcc is
-# @system, the compiler that builds the whole OS.
-llvm-core/clang
+# Nothing requests llvm-core/clang: nvim's clangd is installed by mason in
+# the rice layer, so clang and its own llvm slot (~30 min per patch bump)
+# are gone; mesa keeps llvm:22 alive. C++ itself is deliberately NOT
+# version-managed: sys-devel/gcc is @system, the compiler that builds the
+# whole OS.
+#
+# Dev CLIs that only an interactive shell runs (kubectl, k9s, minikube,
+# lazygit, tealdeer) are pinned in rice's .config/mise/config.toml, not here.
 dev-python/pynvim
-dev-debug/gdb
 dev-debug/valgrind
 
 # net / vpn

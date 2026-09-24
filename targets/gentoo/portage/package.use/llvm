@@ -1,0 +1,4 @@
+# llvm is here for mesa only (llvm:22, radeonsi). The binutils LTO plugin
+# (llvmgold) only matters with clang, which is not requested any more;
+# with it on, llvmgold would drag a second llvm slot back in.
+llvm-core/llvm -binutils-plugin
