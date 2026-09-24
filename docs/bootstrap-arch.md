@@ -95,7 +95,7 @@ yadm alt && yadm bootstrap
 The shared items from
 [bootstrap-gentoo.md § 3](bootstrap-gentoo.md#3-first-boot-checklist):
 Hyprland on tty1, `hyprctl configerrors` (must be empty), monitor EDID
-fill-in, `nvidia-smi` + modeset, docker `--gpus all`, minikube, bluetooth,
+fill-in, `nvidia-smi` + modeset, docker `--gpus all`, minikube (after `mise install`), bluetooth,
 fcitx5, caps⇄esc. Arch-only additions:
 
 - `findmnt /boot/efi` is mounted, and from fstab

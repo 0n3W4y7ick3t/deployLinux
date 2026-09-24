@@ -1,17 +1,13 @@
-# desktop-class extras: containers, k8s, virtualization, network analysis
-# (installed on a desktop chassis or with --desktop; the laptop skips these)
+# desktop-class extras: containers, virtualization, network analysis
+# (installed on a desktop chassis or with --desktop; the laptop skips these).
+# kubectl/k9s/minikube come from mise in the rice layer.
 docker
 docker-compose
 docker-buildx
 nvidia-container-toolkit
-minikube
-kubectl
-k9s
-helm
 qemu-full
 libvirt
 virt-manager
 dnsmasq
 nmap
-wireshark-qt
 7zip

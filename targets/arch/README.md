@@ -25,8 +25,8 @@ renamed 2026-08).
   libva-mesa-driver`.
 - **CPU vendor**: `amd-ucode` or `intel-ucode`.
 - **Chassis**: laptop → `pkgs-laptop.txt` (tlp, iwd, brightnessctl), tlp
-  and iwd enabled; desktop → `pkgs-desktop-extra.txt` (docker, k8s tools,
-  libvirt, tailscale...) plus the EPP performance pin. `--desktop` forces
+  and iwd enabled; desktop → `pkgs-desktop-extra.txt` (docker, libvirt,
+  tailscale...) plus the EPP performance pin. `--desktop` forces
   desktop-class when detection cannot tell.
 - **Bluetooth**: bluez is always installed (both machines have BT), but
   the service is only enabled when a controller is detected.
