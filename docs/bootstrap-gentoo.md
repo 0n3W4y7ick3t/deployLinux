@@ -34,7 +34,7 @@ then runs the numbered scripts:
 
 | script | does |
 | :--- | :--- |
-| `10-portage.sh` | assembles make.conf (profile head + shared), installs package.use/sets, enables the hyproverlay and GURU overlays, syncs |
+| `10-portage.sh` | assembles make.conf (profile head + shared), installs package.use/sets, pins the main tree to rsync.jp.gentoo.org, enables the hyproverlay and GURU overlays, syncs |
 | `15-kernel.sh` | builds the profile's kernel — must precede 20-world, nvidia-drivers needs built sources |
 | `20-world.sh` | installs the base world, the profile's world-extra, and the `@hyprland` set |
 | `30-gpu.sh` | NVIDIA driver + modprobe config, only when an NVIDIA GPU is detected |

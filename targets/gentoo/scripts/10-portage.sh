@@ -28,6 +28,10 @@ if [ -d "$profile_dir/package.use" ]; then
     cp -f "$profile_dir/package.use/"* /etc/portage/package.use/
 fi
 log "copied package.use, package.accept_keywords, package.env, env, sets"
+# repos.conf belongs to eselect-repository, so only our own override is copied
+mkdir -p /etc/portage/repos.conf
+cp -f "$portage_src/repos.conf/gentoo.conf" /etc/portage/repos.conf/
+log "copied repos.conf/gentoo.conf (main tree sync-uri override)"
 
 # make sure the main tree exists before emerging anything
 [ -d /var/db/repos/gentoo ] || emerge-webrsync
