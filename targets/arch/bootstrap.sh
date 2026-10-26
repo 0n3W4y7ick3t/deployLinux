@@ -40,9 +40,14 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-# strip comments/blanks from a package list file
+# strip comments/blanks from a package list file. A listed package whose AUR
+# -git build is installed counts as present (waybar-git on the laptop until
+# waybar 0.16): the repo version would only conflict with it, and --noconfirm
+# answers that prompt with no, which aborts the whole upgrade.
+git_installed=$(mktemp)
+pacman -Qq | sed -n 's/-git$//p' > "$git_installed"
 pkgs() {
-    grep -Ev '^[[:space:]]*(#|$)' "$script_dir/$1"
+    grep -Ev '^[[:space:]]*(#|$)' "$script_dir/$1" | grep -vxF -f "$git_installed"
 }
 
 # ---- detect ----
@@ -81,6 +86,7 @@ log "system update + core and desktop sets"
     [ "$is_desktop" -eq 1 ] && pkgs pkgs-desktop-extra.txt
     true
 } | xargs pacman -Syu --needed --noconfirm
+rm -f "$git_installed"
 
 if [ "$gpu" = nvidia ]; then
     cat > /etc/modprobe.d/nvidia.conf <<'EOF'

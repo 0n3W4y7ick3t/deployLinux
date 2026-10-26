@@ -30,6 +30,9 @@ renamed 2026-08).
   desktop-class when detection cannot tell.
 - **Bluetooth**: bluez is always installed (both machines have BT), but
   the service is only enabled when a controller is detected.
+- **AUR `-git` builds**: a listed package whose `-git` build is installed
+  (waybar-git on the laptop until waybar 0.16) is skipped, since the repo
+  version would only conflict with it and abort the upgrade.
 - **Docker**: on both chassis, rootless. `bootstrap.sh` installs docker,
   rootlesskit and slirp4netns, gives the user a subuid range, delegates
   cgroups to the user manager, enables linger, drops the user from the
