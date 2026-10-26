@@ -32,7 +32,9 @@ emerge --noreplace x11-drivers/nvidia-drivers
 # Nothing is lost by leaving it alone. The modeset+fbdev half that mattered
 # for wayland's KMS handoff is on the kernel cmdline in
 # profiles/desktop/refind_linux.conf, which is where it belongs: it applies
-# at boot, before any module loads, and is checked in.
+# at boot, before any module loads, and is checked in. The one parameter this
+# repo does override, the device-node group for rootless docker, lives in its
+# own file (70-ollama.sh writes /etc/modprobe.d/zz-nvidia-rootless.conf).
 
 # Reminder only. This used to run `emerge @module-rebuild` directly, which
 # broke twice over: make(1) exports MAKEFLAGS/KBUILD_* into the hook, so

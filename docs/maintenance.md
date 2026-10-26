@@ -328,10 +328,14 @@ it). It refuses to start while the user does not linger
 (`loginctl enable-linger leon`), because elogind would otherwise wipe
 `/run/user/1000`, socket included, at the last logout. After five crashes in
 ten minutes supervise-daemon gives up and the service shows `crashed`:
-`rc-service docker-rootless zap`, then `start`. GPU containers need
-`no-cgroups = true` in `/etc/nvidia-container-runtime/config.toml`
-(`70-ollama.sh` sets it); if the hook logs a setuid/setgid permission error,
-comment out `user = "root:video"` in the same file. Rollback to the rootful
+`rc-service docker-rootless zap`, then `start`. GPU containers need three
+things `70-ollama.sh` sets: `no-cgroups = true` and `user = "root:root"` in
+`/etc/nvidia-container-runtime/config.toml` (the hook cannot switch to the
+`video` gid inside the user namespace, the symptom is "nvml error:
+insufficient permissions"), and `/etc/modprobe.d/zz-nvidia-rootless.conf`,
+which gives `/dev/nvidia*` to the user's own group instead of `video` at the
+next module load (a container process never holds the `video` gid, so the
+nodes would stay unopenable). Rollback to the rootful
 daemon: `rc-service docker-rootless stop && rc-update del docker-rootless
 default && rc-update add docker default && gpasswd -a leon docker &&
 rc-service docker start`, then unset `DOCKER_HOST` in the shell.

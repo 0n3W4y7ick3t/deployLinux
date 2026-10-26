@@ -41,7 +41,7 @@ then runs the numbered scripts:
 | `40-services.sh` | OpenRC services (elogind, dbus, bluetooth, keyd caps⇄esc swap, ...), sysctl (BBR), EPP policy, hostname |
 | `45-docker.sh` | rootless Docker: rootlesskit + slirp4netns, the user's subuid range, linger, the `docker-rootless` OpenRC service running the daemon as the login user; the rootful `docker` service goes |
 | `50-virt.sh` / `51-kali-vm.sh` | libvirt + the opt-in Kali VM (~3.6 GiB download, checksum-verified) — only with `WANT_VIRT=1` |
-| `70-ollama.sh` | ollama in docker with GPU — only with `WANT_OLLAMA=1` |
+| `70-ollama.sh` | ollama on the user's rootless docker with GPU (nvidia hook set to `no-cgroups` + `root:root`, GPU nodes handed to the user's group) — only with `WANT_OLLAMA=1` |
 
 Profile behavior lives in `profiles/<name>/profile.conf`; adding a new
 machine means adding a profile directory, nothing else.

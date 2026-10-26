@@ -23,17 +23,41 @@ fi
 emerge --noreplace app-containers/docker app-containers/docker-cli \
     app-containers/docker-compose app-containers/nvidia-container-toolkit
 
-# Rootless: the prestart hook must not write device-cgroup rules it cannot own
-# inside the user namespace, or every `--gpus` container fails to start. The
-# setting is host-wide (it also ends GPU access for a rootful daemon, retired
-# by 45-docker.sh). No runtime entry is needed: `gpus: all` is a device request
-# that dockerd resolves through nvidia-container-runtime-hook on its PATH.
+ollama_user=${VIRT_USER:-${SUDO_USER:-}}
+
+# Three rootless facts, all host-wide (they also end GPU access for a rootful
+# daemon, retired by 45-docker.sh). The prestart hook must not write
+# device-cgroup rules it cannot own inside the user namespace. Its own NVML
+# init must not switch to root:video either: the video gid is not mapped in
+# that namespace and the switch ends in "nvml error: insufficient permissions";
+# root:root, the daemon user itself, works. No runtime entry is needed:
+# `gpus: all` is a device request that dockerd resolves through
+# nvidia-container-runtime-hook on its PATH.
 if command -v nvidia-ctk >/dev/null 2>&1; then
     # set -e: a failure here must not abort the whole provision run
-    nvidia-ctk config --set nvidia-container-cli.no-cgroups --in-place ||
-        log "nvidia-ctk failed, rerun after boot: nvidia-ctk config --set nvidia-container-cli.no-cgroups --in-place"
+    if ! nvidia-ctk config --set nvidia-container-cli.no-cgroups --set nvidia-container-cli.user=root:root --in-place; then
+        log "nvidia-ctk failed, rerun after boot: nvidia-ctk config --set nvidia-container-cli.no-cgroups --set nvidia-container-cli.user=root:root --in-place"
+    fi
 else
-    log "nvidia-ctk absent, rerun after boot: nvidia-ctk config --set nvidia-container-cli.no-cgroups --in-place"
+    log "nvidia-ctk absent, rerun after boot: nvidia-ctk config --set nvidia-container-cli.no-cgroups --set nvidia-container-cli.user=root:root --in-place"
+fi
+
+# The driver's own modprobe config makes the GPU nodes root:video 0660. A
+# container process never has the video gid (its gids are the daemon user's
+# and the subuid range), so no container could open them. The override hands
+# the nodes to that user's own group: container root is the user, and on this
+# single-user machine the group is the same person video used to mean. Sorted
+# after nvidia.conf, the last assignment wins; applies at the next module load.
+if [ -n "$ollama_user" ]; then
+    mkdir -p /etc/modprobe.d
+    cat > /etc/modprobe.d/zz-nvidia-rootless.conf <<EOF
+# deployLinux 70-ollama.sh: the GPU nodes belong to the rootless docker user's
+# group instead of video, so container root (= that user) can open them.
+options nvidia NVreg_DeviceFileGID=$(id -g "$ollama_user")
+EOF
+    log "wrote /etc/modprobe.d/zz-nvidia-rootless.conf (GPU nodes -> group of $ollama_user, next module load)"
+else
+    log "no VIRT_USER/SUDO_USER: /etc/modprobe.d/zz-nvidia-rootless.conf not written, GPU containers stay locked out"
 fi
 
 mkdir -p /opt/ollama
@@ -59,7 +83,6 @@ log "wrote /opt/ollama/docker-compose.yml"
 # The daemon is the user's, so compose runs as that user against its socket.
 # Skipped inside the install chroot, where nothing is running. /opt/ollama is
 # root's and only has to be readable: compose writes nothing there.
-ollama_user=${VIRT_USER:-${SUDO_USER:-}}
 if [ -n "$ollama_user" ] && rc-service docker-rootless status >/dev/null 2>&1; then
     ollama_uid=$(id -u "$ollama_user")
     ollama_home=$(getent passwd "$ollama_user" | cut -d: -f6)

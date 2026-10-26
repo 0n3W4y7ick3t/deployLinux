@@ -210,6 +210,17 @@ init script refuses to start without it; nothing else in the chain would
 notice. The user is also out of the `docker` group on purpose: a `docker`
 call without `DOCKER_HOST` must fail, not reach a root daemon.
 
+**The `video` group means nothing inside the rootless daemon.** Only the
+user's uid/gid and the subuid range are mapped into its user namespace, so a
+gid like `video` is `nobody` there: the nvidia hook's default `user =
+"root:video"` dies with "nvml error: insufficient permissions", and a
+container process can never open a `root:video 0660` device node, whatever
+its `--gpus`. `70-ollama.sh` therefore sets the hook's user to `root:root`
+and moves the GPU nodes to the user's own group via
+`/etc/modprobe.d/zz-nvidia-rootless.conf`. The same applies to any other
+device a container should reach: it has to be readable by the user's own
+ids, not by a group the user happens to be in.
+
 **cronie ships `/var/spool/cron/crontabs`, but nothing fixes its parent.**
 `/var/spool/cron` was left `drwxr-x--- root:cron` while `/usr/bin/crontab`
 is setgid **crontab** (gid 460 — *not* cron, gid 16), so crontab cannot
