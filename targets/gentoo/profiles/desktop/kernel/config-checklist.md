@@ -70,7 +70,8 @@ Why: exact hardware on the TUF B850-PLUS WIFI.
 
 ## Misc
 
-- `WIREGUARD`, `TUN` — VPNs (tailscale, warp).
+- `WIREGUARD`, `TUN` — VPNs (tailscale, warp); `TUN` also carries
+  slirp4netns, rootless docker's network stack.
 - `PACKET`, `USB_MON` — nmap capture.
 - `IKCONFIG_PROC` — running config at /proc/config.gz.
 - CRC32C — required by xfs/btrfs/iscsi paths, keep accelerated.

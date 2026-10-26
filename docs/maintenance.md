@@ -303,7 +303,7 @@ OpenRC, managed by `40-services.sh`. Current expected set:
 
 ```
 boot:     elogind
-default:  dbus dhcpcd bluetooth docker keyd zram-init cronie libvirtd
+default:  dbus dhcpcd bluetooth docker-rootless keyd zram-init cronie libvirtd
 ```
 
 ```sh
@@ -317,6 +317,24 @@ rc-service <name> status|start|restart
 `/usr/local/sbin/portage-sync` (weekly tree sync, see below),
 `/etc/keyd/default.conf` and `/etc/conf.d/zram-init`. Re-running it restores
 any of them.
+
+`docker-rootless` belongs to `45-docker.sh`, which owns `/etc/init.d/docker-rootless`
+and `/etc/conf.d/docker-rootless` the same way (a re-run rewrites the conf.d
+from the repo and restarts the daemon, with every container, only when one of
+the two changed): rootlesskit + dockerd running as
+the login user, logging to `/var/log/docker-rootless.log`, reached through
+`DOCKER_HOST=unix:///run/user/1000/docker.sock` (rice's login profile exports
+it). It refuses to start while the user does not linger
+(`loginctl enable-linger leon`), because elogind would otherwise wipe
+`/run/user/1000`, socket included, at the last logout. After five crashes in
+ten minutes supervise-daemon gives up and the service shows `crashed`:
+`rc-service docker-rootless zap`, then `start`. GPU containers need
+`no-cgroups = true` in `/etc/nvidia-container-runtime/config.toml`
+(`70-ollama.sh` sets it); if the hook logs a setuid/setgid permission error,
+comment out `user = "root:video"` in the same file. Rollback to the rootful
+daemon: `rc-service docker-rootless stop && rc-update del docker-rootless
+default && rc-update add docker default && gpasswd -a leon docker &&
+rc-service docker start`, then unset `DOCKER_HOST` in the shell.
 
 ## What not to do
 

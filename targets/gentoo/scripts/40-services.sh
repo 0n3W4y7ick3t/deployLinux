@@ -34,7 +34,7 @@ rc_add dbus default
 # dhcpcd everywhere, ethernet is the default path
 rc_add dhcpcd default
 rc_add bluetooth default
-rc_add docker default
+# docker: the rootless service, 45-docker.sh
 # init script is `tailscale`, not `tailscaled`
 rc_add tailscale default
 if [ "${WANT_VIRT:-0}" = 1 ]; then

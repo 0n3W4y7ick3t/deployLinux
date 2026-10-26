@@ -1,0 +1,40 @@
+# shellcheck shell=sh disable=SC2034
+# Settings for /etc/init.d/docker-rootless, sourced by openrc-run. Installed
+# by deployLinux targets/gentoo/scripts/45-docker.sh, which fills in the user.
+
+# the login user who owns the daemon, its images (~/.local/share/docker) and
+# its containers
+DOCKER_ROOTLESS_USER="leon"
+
+# dockerd-rootless.sh needs a writable XDG_RUNTIME_DIR and puts docker.sock,
+# docker.pid and dockerd-rootless/ there. Under /run/user the dir is elogind's
+# and the user must linger (loginctl enable-linger), or it is wiped at the
+# last logout; any other path under /run is created by the service itself.
+#DOCKER_ROOTLESS_RUNTIME_DIR="/run/user/1000"
+# tmpfs size when the service mounts the dir itself (elogind absent)
+#DOCKER_ROOTLESS_RUNTIME_SIZE="10%"
+
+# rootlesskit network and port driver; the table at the top of
+# /usr/bin/dockerd-rootless.sh explains the choices
+#DOCKER_ROOTLESS_NET="slirp4netns"
+#DOCKER_ROOTLESS_PORT_DRIVER="builtin"
+# further --env VAR=VALUE pairs for supervise-daemon, e.g.
+# "--env DOCKERD_ROOTLESS_ROOTLESSKIT_DISABLE_HOST_LOOPBACK=false"
+#DOCKER_ROOTLESS_ENV=""
+
+# dockerd options; the daemon also reads the user's ~/.config/docker/daemon.json
+DOCKER_ROOTLESS_OPTS=""
+
+# stdout and stderr of rootlesskit and dockerd (the file is owned by the user)
+#DOCKER_ROOTLESS_LOGFILE="/var/log/docker-rootless.log"
+#DOCKER_ROOTLESS_ULIMIT="-c unlimited -n 524288 -u unlimited"
+
+# stop schedule: SIGTERM to rootlesskit (dockerd stops the containers),
+# SIGKILL after 90 s
+#DOCKER_ROOTLESS_RETRY="TERM/90/KILL/10"
+
+# OpenRC delegates no cgroup to the user, so every container process lives in
+# this service's cgroup. Killing the cgroup after stop catches whatever the
+# graceful path left behind (a container that ignored SIGTERM, slirp4netns,
+# containerd shims).
+rc_cgroup_cleanup="YES"

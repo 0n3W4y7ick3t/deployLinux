@@ -77,14 +77,18 @@ for sym in CONFIG_NFT_NAT CONFIG_NFT_REJECT CONFIG_NFT_MASQ \
     grep -qE "^$sym=[ym]" .config ||
         die "$sym unset: libvirt's default network will not start"
 done
-# docker publishes ports through iptables-nft, which needs the xt DNAT/SNAT
-# targets to exist as a module. Missing -> `docker run -p` dies with
-# "Extension DNAT revision 0 not supported" and the container ends up running
-# with no network at all.
+# dockerd wires container ports through iptables-nft (inside its own network
+# namespace now that it is rootless), which needs the xt DNAT/SNAT targets to
+# exist as a module. Missing -> `docker run -p` dies with "Extension DNAT
+# revision 0 not supported" and the container ends up running with no network
+# at all.
 for sym in CONFIG_NETFILTER_XT_NAT CONFIG_NETFILTER_XT_TARGET_MASQUERADE; do
     grep -qE "^$sym=[ym]" .config ||
         die "$sym unset: docker cannot publish container ports"
 done
+# rootless docker's network is slirp4netns, which opens /dev/net/tun
+grep -qE '^CONFIG_TUN=[ym]' .config ||
+    die "CONFIG_TUN unset: slirp4netns cannot give rootless docker a network"
 log "config checks passed"
 
 make "-j$jobs"

@@ -127,10 +127,14 @@ media-sound/alsa-utils
 media-gfx/imagemagick
 media-gfx/graphviz
 
-# containers (both machines run docker)
+# containers: docker itself plus what its rootless daemon needs (45-docker.sh)
 app-containers/docker
 app-containers/docker-cli
 app-containers/docker-compose
 # buildx is the builder behind `docker build` now: docker-cli 29 deprecated
 # the legacy one and will drop it
 app-containers/docker-buildx
+# rootlesskit runs dockerd in a user namespace, slirp4netns gives it a network;
+# rootlesskit is ~amd64 only, covered by the global ACCEPT_KEYWORDS
+sys-apps/rootlesskit
+app-containers/slirp4netns

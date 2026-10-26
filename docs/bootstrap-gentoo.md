@@ -39,6 +39,7 @@ then runs the numbered scripts:
 | `20-world.sh` | installs the base world, the profile's world-extra, and the `@hyprland` set |
 | `30-gpu.sh` | NVIDIA driver + modprobe config, only when an NVIDIA GPU is detected |
 | `40-services.sh` | OpenRC services (elogind, dbus, bluetooth, keyd caps⇄esc swap, ...), sysctl (BBR), EPP policy, hostname |
+| `45-docker.sh` | rootless Docker: rootlesskit + slirp4netns, the user's subuid range, linger, the `docker-rootless` OpenRC service running the daemon as the login user; the rootful `docker` service goes |
 | `50-virt.sh` / `51-kali-vm.sh` | libvirt + the opt-in Kali VM (~3.6 GiB download, checksum-verified) — only with `WANT_VIRT=1` |
 | `70-ollama.sh` | ollama in docker with GPU — only with `WANT_OLLAMA=1` |
 
@@ -110,10 +111,12 @@ Log in on tty1 — Hyprland starts automatically. Then:
   `~/.config/hypr/machine.conf` with the 27" monitor's description from
   `hyprctl monitors` (one monitor line + nine workspace pins).
 - `nvidia-smi` works; `cat /sys/module/nvidia_drm/parameters/modeset` is `Y`.
-- `docker run --rm hello-world`, then
+- `docker run --rm hello-world` as your user (`DOCKER_HOST` comes from
+  rice's login profile, `docker info` says `rootless`), then
   `docker run --rm --gpus all nvidia/cuda:12.9.0-base-ubuntu24.04 nvidia-smi`.
-- `minikube start --driver=docker && kubectl get nodes`, in an interactive
-  shell after `mise install`.
+- `minikube start --driver=kvm2 && kubectl get nodes`, in an interactive
+  shell after `mise install`. The docker driver needs cgroup delegation,
+  which a rootless daemon under OpenRC does not get.
 - `virsh list --all`; run `51-kali-vm.sh` when you want the lab VM.
 - Bluetooth pairs (`bluetoothctl`), fcitx5 types Chinese in kitty and
   Firefox, Caps Lock and Escape are swapped.

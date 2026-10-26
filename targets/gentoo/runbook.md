@@ -147,10 +147,12 @@ Verify: `efibootmgr -v` lists rEFInd, then reboot into it.
 - `swapon --show` lists the zram device
 - `dmesg | grep -i microcode` shows an early load, not a late one
   (late loading means CONFIG_EXTRA_FIRMWARE did not take)
-- `docker run --rm hello-world`
-- `docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu24.04 nvidia-smi`
-- `minikube start --driver=docker && kubectl get nodes` (interactive shell,
-  after `mise install`)
+- `dockerd-rootless-setuptool.sh --force check` reports nothing missing, then
+  `docker run --rm hello-world` as your user (`docker info` says `rootless`)
+- `docker run --rm --gpus all nvidia/cuda:12.9.0-base-ubuntu24.04 nvidia-smi`
+- `minikube start --driver=kvm2 && kubectl get nodes` (interactive shell,
+  after `mise install`; the docker driver needs cgroup delegation, which
+  rootless docker under OpenRC does not get)
 - `virsh list --all` answers (libvirtd up)
 - `bluetoothctl` pairs a device
 - fcitx5 switches input methods (Ctrl+Space) — Pinyin and Mozc must be

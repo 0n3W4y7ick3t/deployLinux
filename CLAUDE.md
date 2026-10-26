@@ -46,7 +46,8 @@ targets/gentoo/  neverland
   ch_gentoo.sh   chroot helper
   world          base package list (fleet-wide)
   scripts/       10-portage 15-kernel 20-world 25-fonts 30-gpu 40-services
-                                50-virt 51-kali-vm(opt-in) 70-ollama
+                 45-docker 50-virt 51-kali-vm(opt-in) 70-ollama
+  init.d/ conf.d/  the docker-rootless OpenRC service, installed by 45-docker
   portage/       make.conf.shared, package.use/, sets/, env/
   profiles/<n>/  profile.conf, make.conf.head, world-extra, fstab, kernel/
 targets/arch/    x13 — one detecting bootstrap.sh + flat pkgs-*.txt lists
@@ -195,7 +196,19 @@ module?" — and `docker start` afterwards leaves the container **running
 with no ports and no network at all**, which reads like a broken image
 rather than a kernel gap. `build.sh` asserts it next to the libvirt
 symbols. The module loads into a running kernel of the same version, so
-the fix does not need a reboot.
+the fix does not need a reboot. Rootless moved where this bites, not
+whether: dockerd does that NAT inside its own network namespace, and the
+host side of a published port is rootlesskit's port driver. A daemon in a
+user namespace cannot autoload modules, so `docker-rootless`'s `start_pre`
+loads them.
+
+**Rootless docker lives or dies with linger.** `dockerd-rootless.sh` keeps
+its socket and state in `/run/user/1000`, which elogind mounts at the first
+login and, for a user who does not linger, empties and unmounts at the last
+logout, under the running daemon. `45-docker.sh` enables linger and the
+init script refuses to start without it; nothing else in the chain would
+notice. The user is also out of the `docker` group on purpose: a `docker`
+call without `DOCKER_HOST` must fail, not reach a root daemon.
 
 **cronie ships `/var/spool/cron/crontabs`, but nothing fixes its parent.**
 `/var/spool/cron` was left `drwxr-x--- root:cron` while `/usr/bin/crontab`

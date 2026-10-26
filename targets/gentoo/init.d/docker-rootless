@@ -1,0 +1,116 @@
+#!/sbin/openrc-run
+# Rootless Docker: rootlesskit + dockerd running as the login user, kept up by
+# supervise-daemon. Installed by targets/gentoo/scripts/45-docker.sh, settings
+# in /etc/conf.d/docker-rootless. The socket is $XDG_RUNTIME_DIR/docker.sock;
+# the CLI finds it through DOCKER_HOST, exported by rice's shell profile.
+
+: "${DOCKER_ROOTLESS_USER:=leon}"
+: "${DOCKER_ROOTLESS_LOGFILE:=/var/log/${RC_SVCNAME}.log}"
+: "${DOCKER_ROOTLESS_NET:=slirp4netns}"
+: "${DOCKER_ROOTLESS_PORT_DRIVER:=builtin}"
+: "${DOCKER_ROOTLESS_RUNTIME_SIZE:=10%}"
+
+description="Rootless Docker daemon (rootlesskit + dockerd) for ${DOCKER_ROOTLESS_USER}"
+extra_started_commands="reload"
+
+user_uid=$(id -u "${DOCKER_ROOTLESS_USER}" 2>/dev/null)
+user_gid=$(id -g "${DOCKER_ROOTLESS_USER}" 2>/dev/null)
+user_home=$(getent passwd "${DOCKER_ROOTLESS_USER}" 2>/dev/null | cut -d: -f6)
+: "${DOCKER_ROOTLESS_RUNTIME_DIR:=/run/user/${user_uid}}"
+
+supervisor=supervise-daemon
+command=/usr/bin/dockerd-rootless.sh
+command_args="${DOCKER_ROOTLESS_OPTS}"
+# --user also sets the supplementary groups, so the daemon keeps `video` and
+# with it the GPU nodes (/dev/nvidia* are root:video)
+command_user="${DOCKER_ROOTLESS_USER}"
+directory="${user_home}"
+output_log="${DOCKER_ROOTLESS_LOGFILE}"
+error_log="${DOCKER_ROOTLESS_LOGFILE}"
+# stop: SIGTERM to rootlesskit, forwarded to dockerd, which stops every
+# container (its own bound is max(15 s, longest stop_grace_period + 5 s));
+# SIGKILL only after that
+retry="${DOCKER_ROOTLESS_RETRY:-TERM/90/KILL/10}"
+respawn_delay=5
+respawn_max=5
+respawn_period=600
+rc_ulimit="${DOCKER_ROOTLESS_ULIMIT:--c unlimited -n 524288 -u unlimited}"
+# OpenRC hands the command almost no environment; everything the rootless
+# scripts read is set here. The network stack is pinned: dockerd-rootless.sh
+# would otherwise pick whatever it finds first (pasta, once passt is installed).
+supervise_daemon_args="
+	--env XDG_RUNTIME_DIR=${DOCKER_ROOTLESS_RUNTIME_DIR}
+	--env HOME=${user_home}
+	--env USER=${DOCKER_ROOTLESS_USER}
+	--env LOGNAME=${DOCKER_ROOTLESS_USER}
+	--env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+	--env DOCKERD_ROOTLESS_ROOTLESSKIT_NET=${DOCKER_ROOTLESS_NET}
+	--env DOCKERD_ROOTLESS_ROOTLESSKIT_PORT_DRIVER=${DOCKER_ROOTLESS_PORT_DRIVER}
+	${DOCKER_ROOTLESS_ENV}"
+
+depend() {
+	need localmount
+	use net dns logger
+	# elogind (boot runlevel) mounts /run/user/UID for a lingering user when
+	# it starts, before this service runs
+	after elogind
+}
+
+start_pre() {
+	if [ -z "${user_uid}" ] || [ ! -d "${user_home}" ]; then
+		eerror "DOCKER_ROOTLESS_USER=${DOCKER_ROOTLESS_USER}: no such user or no home directory"
+		return 1
+	fi
+	if ! grep -q "^${DOCKER_ROOTLESS_USER}:" /etc/subuid 2>/dev/null ||
+		! grep -q "^${DOCKER_ROOTLESS_USER}:" /etc/subgid 2>/dev/null; then
+		eerror "${DOCKER_ROOTLESS_USER} has no range in /etc/subuid and /etc/subgid" \
+			"(usermod --add-subuids 100000-165535 --add-subgids 100000-165535 ${DOCKER_ROOTLESS_USER})"
+		return 1
+	fi
+	# slirp4netns needs /dev/net/tun; dockerd inside the user namespace needs
+	# the netfilter and bridge modules the rootful daemon used to autoload as
+	# real root. Builtin symbols make modprobe a no-op.
+	modprobe -a tun nf_tables nft_compat xt_nat xt_MASQUERADE xt_addrtype \
+		xt_conntrack xt_comment xt_mark veth bridge br_netfilter 2>/dev/null ||
+		ewarn "not every network module loaded, see dmesg if containers have no network"
+
+	case "${DOCKER_ROOTLESS_RUNTIME_DIR}" in
+	/run/user/*)
+		# elogind owns /run/user/UID: a tmpfs it mounts at the first login
+		# (at its own start for a lingering user) and, at the last logout of a
+		# user who does not linger, empties with rm -rf and unmounts, with
+		# docker.sock and the daemon's state inside. Linger is therefore not
+		# optional; the failure without it is silent, so refuse here.
+		if [ -d /var/lib/elogind ] && [ ! -e "/var/lib/elogind/linger/${DOCKER_ROOTLESS_USER}" ]; then
+			eerror "${DOCKER_ROOTLESS_USER} does not linger: elogind would wipe" \
+				"${DOCKER_ROOTLESS_RUNTIME_DIR} at the last logout. Run: loginctl enable-linger ${DOCKER_ROOTLESS_USER}"
+			return 1
+		fi
+		if ! mountinfo -q "${DOCKER_ROOTLESS_RUNTIME_DIR}"; then
+			# elogind absent or not started: do what logind does, so a later
+			# login finds a mount point and does not shadow the socket
+			checkpath -d -m 0755 -o root:root /run/user || return 1
+			checkpath -d -m 0700 -o "${user_uid}:${user_gid}" "${DOCKER_ROOTLESS_RUNTIME_DIR}" || return 1
+			mount -t tmpfs \
+				-o "nosuid,nodev,mode=0700,uid=${user_uid},gid=${user_gid},size=${DOCKER_ROOTLESS_RUNTIME_SIZE}" \
+				tmpfs "${DOCKER_ROOTLESS_RUNTIME_DIR}" || return 1
+		fi
+		;;
+	*)
+		# a dedicated dir under /run (a tmpfs already); nobody else manages it
+		checkpath -d -m 0700 -o "${user_uid}:${user_gid}" "${DOCKER_ROOTLESS_RUNTIME_DIR}" || return 1
+		;;
+	esac
+	if [ "$(stat -c %u "${DOCKER_ROOTLESS_RUNTIME_DIR}")" != "${user_uid}" ]; then
+		eerror "${DOCKER_ROOTLESS_RUNTIME_DIR} is not owned by ${DOCKER_ROOTLESS_USER}"
+		return 1
+	fi
+	# supervise-daemon drops privileges before it opens the log
+	checkpath -f -m 0640 -o "${user_uid}:${user_gid}" "${DOCKER_ROOTLESS_LOGFILE}"
+}
+
+reload() {
+	ebegin "Reloading ${RC_SVCNAME}"
+	supervise-daemon "${RC_SVCNAME}" --signal HUP
+	eend $?
+}
