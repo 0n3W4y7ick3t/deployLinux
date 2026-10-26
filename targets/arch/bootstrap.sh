@@ -234,9 +234,43 @@ EOF
     log "wifi: NetworkManager + iwd backend"
 fi
 if [ "$is_desktop" -eq 1 ]; then
-    systemctl enable docker.service libvirtd.service
+    systemctl enable libvirtd.service
     log "after first start, run: virsh net-autostart default"
 fi
+
+# ---- rootless docker: the root prerequisites; the daemon itself is the user's ----
+# Twin of targets/gentoo/scripts/45-docker.sh. The user unit comes from AUR
+# docker-rootless-extras and the user enables it (handoff below).
+if [ -n "${SUDO_USER:-}" ]; then
+    # subordinate ids, the same range as the rest of the fleet: container uid N
+    # is host 100000+N-1
+    grep -q "^$SUDO_USER:" /etc/subuid || usermod --add-subuids 100000-165535 "$SUDO_USER"
+    grep -q "^$SUDO_USER:" /etc/subgid || usermod --add-subgids 100000-165535 "$SUDO_USER"
+    mkdir -p /etc/systemd/system/user@.service.d
+    cat > /etc/systemd/system/user@.service.d/delegate.conf <<'EOF'
+# Rootless docker: cgroup v2 delegation to the user manager (systemd cgroup
+# driver, resource limits). Takes effect when user@UID restarts, i.e. at the
+# next boot.
+[Service]
+Delegate=cpu cpuset io memory pids
+EOF
+    systemctl daemon-reload 2>/dev/null || true
+    # the user manager, and the daemon under it, start at boot and outlive the
+    # sessions; the file is what logind reads when loginctl cannot run (chroot)
+    loginctl enable-linger "$SUDO_USER" 2>/dev/null ||
+        { mkdir -p /var/lib/systemd/linger && : > "/var/lib/systemd/linger/$SUDO_USER"; }
+    # a docker call without DOCKER_HOST must fail, not reach a root daemon
+    if id -nG "$SUDO_USER" | tr ' ' '\n' | grep -qx docker; then
+        gpasswd -d "$SUDO_USER" docker && log "removed $SUDO_USER from docker (needs a re-login)"
+    fi
+    log "rootless docker prerequisites for $SUDO_USER (subuid range, cgroup delegation, linger)"
+else
+    log "no SUDO_USER, skipping the rootless docker setup (subuid range, linger, docker group)"
+fi
+# the rootful daemon stays installed (dockerd, the CLI) but never runs: masked,
+# so no stray Requires= can bring it back
+systemctl disable --now docker.service docker.socket containerd.service 2>/dev/null || true
+systemctl mask docker.service docker.socket 2>/dev/null || log "could not mask docker.service (chroot?)"
 
 # ---- hostname ----
 # Not `hostname`: that binary lives in inetutils, which is not part of a base
@@ -259,7 +293,9 @@ yadm_class=x13
 [ "$is_desktop" -eq 1 ] && yadm_class=desktop
 log "done. AUR packages and dotfiles are piloted as your user:"
 cat <<EOF
-  yay -S --needed - < $script_dir/pkgs-aur.txt   # skip if no yay
+  yay -S --needed - < $script_dir/pkgs-aur.txt   # skip if no yay; docker-rootless-extras is in it
+  systemctl --user enable --now docker.service    # rootless docker; log out and in for DOCKER_HOST, reboot once for cgroup delegation
+  sudo rm -rf /var/lib/docker /var/lib/containerd # the rootful daemon's data, once the user one runs
   yadm clone git@github.com:0n3W4y7ick3t/rice
   yadm config local.class $yadm_class
   yadm alt

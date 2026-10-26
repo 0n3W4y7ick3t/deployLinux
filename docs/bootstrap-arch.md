@@ -23,7 +23,8 @@ What detection decides (see `sh ../../common/detect.sh --report`):
 | AMD GPU | `mesa vulkan-radeon libva-mesa-driver` |
 | CPU vendor | `amd-ucode` / `intel-ucode` |
 | laptop chassis | `tlp iwd brightnessctl`, tlp + iwd enabled, NM's wifi backend set to iwd |
-| desktop chassis (or `--desktop`) | docker, k8s tools, libvirt, tailscale, pentest basics, EPP pinned to performance |
+| desktop chassis (or `--desktop`) | nvidia-container-toolkit, libvirt, pentest basics, EPP pinned to performance |
+| every chassis | rootless Docker: the packages, the user's subuid range, cgroup delegation for the user manager, linger; the rootful `docker.service` masked. The user installs AUR `docker-rootless-extras` and enables the user `docker.service` (printed at the end) |
 | bluetooth controller | bluez service enabled (bluez always installed) |
 
 Everything else is flat package lists next to the script
@@ -95,7 +96,7 @@ yadm alt && yadm bootstrap
 The shared items from
 [bootstrap-gentoo.md § 3](bootstrap-gentoo.md#3-first-boot-checklist):
 Hyprland on tty1, `hyprctl configerrors` (must be empty), monitor EDID
-fill-in, `nvidia-smi` + modeset, docker `--gpus all`, minikube (after `mise install`), bluetooth,
+fill-in, `nvidia-smi` + modeset, docker as your user (`docker info` says `rootless`, `--gpus all` on the desktop), minikube (after `mise install` and `minikube config set rootless true`), bluetooth,
 fcitx5, caps⇄esc. Arch-only additions:
 
 - `findmnt /boot/efi` is mounted, and from fstab

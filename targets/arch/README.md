@@ -25,11 +25,20 @@ renamed 2026-08).
   libva-mesa-driver`.
 - **CPU vendor**: `amd-ucode` or `intel-ucode`.
 - **Chassis**: laptop → `pkgs-laptop.txt` (tlp, iwd, brightnessctl), tlp
-  and iwd enabled; desktop → `pkgs-desktop-extra.txt` (docker, libvirt,
-  tailscale...) plus the EPP performance pin. `--desktop` forces
+  and iwd enabled; desktop → `pkgs-desktop-extra.txt` (nvidia-container-toolkit,
+  libvirt, nmap...) plus the EPP performance pin. `--desktop` forces
   desktop-class when detection cannot tell.
 - **Bluetooth**: bluez is always installed (both machines have BT), but
   the service is only enabled when a controller is detected.
+- **Docker**: on both chassis, rootless. `bootstrap.sh` installs docker,
+  rootlesskit and slirp4netns, gives the user a subuid range, delegates
+  cgroups to the user manager, enables linger, drops the user from the
+  `docker` group and masks the rootful `docker.service`. The user then
+  installs AUR `docker-rootless-extras` and runs `systemctl --user enable
+  --now docker.service`; `DOCKER_HOST` comes from rice's login profile.
+  Rollback: `systemctl --user disable --now docker.service`, then as root
+  `systemctl unmask docker.service && systemctl enable --now docker.service
+  && gpasswd -a $USER docker`, and `unset DOCKER_HOST` in the shell.
 
 Package sets are plain files: `pkgs-core.txt`, `pkgs-desktop.txt`,
 `pkgs-desktop-extra.txt`, `pkgs-laptop.txt`, `pkgs-aur.txt` (AUR ones are

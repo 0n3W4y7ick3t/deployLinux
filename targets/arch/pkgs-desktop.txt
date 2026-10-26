@@ -66,3 +66,11 @@ typst
 # mtp mounting for garmin watch / android phones (aft-mtp-mount + mtp-detect)
 android-file-transfer
 libmtp
+# containers, both chassis. The daemon runs rootless as the user: rootlesskit
+# + slirp4netns here, dockerd-rootless.sh and its user units from AUR
+# docker-rootless-extras (pkgs-aur.txt); bootstrap.sh masks docker.service.
+docker
+docker-compose
+docker-buildx
+rootlesskit
+slirp4netns

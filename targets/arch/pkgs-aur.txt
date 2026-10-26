@@ -6,3 +6,6 @@ google-cloud-cli
 apple_cursor
 # terminal mail configurator (stack itself is in pkgs-desktop.txt)
 mutt-wizard
+# rootless docker: dockerd-rootless.sh plus the user units docker.service and
+# docker.socket; enable docker.service with systemctl --user (bootstrap handoff)
+docker-rootless-extras
