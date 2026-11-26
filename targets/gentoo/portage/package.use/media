@@ -3,3 +3,6 @@ media-video/mpv lua
 media-video/pipewire bluetooth sound-server pipewire-alsa
 # fuse is what provides aft-mtp-mount; without it only aft-mtp-cli installs
 sys-fs/android-file-transfer-linux fuse
+# wf-recorder links the ffmpeg 8 compat slot until it builds against ffmpeg 9
+# (gentoo bug 980701) and requires x264 there
+media-video/ffmpeg-compat x264
